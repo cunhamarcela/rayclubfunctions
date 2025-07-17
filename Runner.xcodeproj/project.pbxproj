@@ -1,0 +1,16 @@
+// ... existing code ...
+97C147061CF9000F007C117D /* Debug */ = {
+	isa = XCBuildConfiguration;
+	baseConfigurationReference = C32887E14B18D5D8AEBA9925 /* Pods-Runner.debug.xcconfig */;
+	buildSettings = {
+// ... existing code ...
+97C147071CF9000F007C117D /* Release */ = {
+	isa = XCBuildConfiguration;
+	baseConfigurationReference = 7806151A311354B09C5D0D41 /* Pods-Runner.release.xcconfig */;
+	buildSettings = {
+// ... existing code ...
+249021D4217E4FDB00AE95B9 /* Profile */ = {
+	isa = XCBuildConfiguration;
+	baseConfigurationReference = DB1D3858F4F2450D80D4F079 /* Pods-Runner.profile.xcconfig */;
+	buildSettings = {
+// ... existing code ...

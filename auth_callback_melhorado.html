@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Ray Club - Autenticação</title>
+    <meta name="description" content="Ray Club - Redirecionamento de autenticação">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/favicon.png">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #e76339 0%, #f7931e 50%, #ff006e 100%);
+            flex-direction: column;
+            text-align: center;
+            color: white;
+            overflow: hidden;
+        }
+        
+        .container {
+            max-width: 420px;
+            padding: 40px 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.6s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 25px;
+            background: white;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: #e76339;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-bottom: 30px;
+            line-height: 1.4;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 15px;
+            min-height: 20px;
+        }
+        
+        .debug-info {
+            margin-top: 25px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            font-size: 12px;
+            opacity: 0.7;
+            text-align: left;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .debug-info.show {
+            max-height: 200px;
+        }
+        
+        .error-state {
+            background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);
+        }
+        
+        .success-state {
+            background: linear-gradient(135deg, #2ed573 0%, #1e90ff 100%);
+        }
+        
+        .fallback-buttons {
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                margin: 20px;
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            .subtitle {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="container">
+        <div class="logo">RC</div>
+        <h1 id="title">🎉 Autenticação realizada!</h1>
+        <p class="subtitle" id="subtitle">Redirecionando para o aplicativo Ray Club...</p>
+        <div class="spinner" id="spinner"></div>
+        <div class="status" id="status">Processando...</div>
+        
+        <div class="fallback-buttons" id="fallback">
+            <a href="#" class="btn" id="deep-link-btn">Abrir Ray Club</a>
+            <a href="#" class="btn" id="store-btn">Baixar App</a>
+        </div>
+        
+        <div class="debug-info" id="debug">
+            <strong>Debug Info:</strong><br>
+            <span id="debug-content"></span>
+        </div>
+    </div>
+
+    <script>
+        // Configurações
+        const CONFIG = {
+            DEEP_LINK_SCHEME: 'rayclub://login-callback', // CORRIGIDO: era rayclub://login
+            TIMEOUT_MS: 8000,
+            DEBUG_MODE: true,
+            APP_STORE_URL: 'https://apps.apple.com/app/ray-club/id123456789',
+            PLAY_STORE_URL: 'https://play.google.com/store/apps/details?id=com.rayclub.app'
+        };
+        
+        // Estado da aplicação
+        let state = {
+            startTime: Date.now(),
+            params: {},
+            deepLink: '',
+            attempts: 0,
+            success: false
+        };
+        
+        // Elementos DOM
+        const elements = {
+            container: document.getElementById('container'),
+            title: document.getElementById('title'),
+            subtitle: document.getElementById('subtitle'),
+            spinner: document.getElementById('spinner'),
+            status: document.getElementById('status'),
+            fallback: document.getElementById('fallback'),
+            debug: document.getElementById('debug'),
+            debugContent: document.getElementById('debug-content'),
+            deepLinkBtn: document.getElementById('deep-link-btn'),
+            storeBtn: document.getElementById('store-btn')
+        };
+        
+        // Logging melhorado
+        function log(level, message, data = null) {
+            const timestamp = new Date().toISOString();
+            const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+            
+            console[level](logMessage, data || '');
+            
+            if (CONFIG.DEBUG_MODE) {
+                updateDebugInfo(logMessage);
+            }
+        }
+        
+        function updateDebugInfo(message) {
+            const current = elements.debugContent.innerHTML;
+            elements.debugContent.innerHTML = current + '<br>' + message;
+            elements.debug.classList.add('show');
+        }
+        
+        function updateStatus(message) {
+            elements.status.textContent = message;
+            log('info', `Status: ${message}`);
+        }
+        
+        // Captura de parâmetros melhorada
+        function getUrlParams() {
+            const params = {};
+            
+            try {
+                // Query string parameters (?param=value)
+                const queryString = window.location.search.substring(1);
+                if (queryString) {
+                    const queryParams = new URLSearchParams(queryString);
+                    for (const [key, value] of queryParams) {
+                        params[key] = value;
+                    }
+                }
+                
+                // Hash parameters (#param=value)
+                const hashString = window.location.hash.substring(1);
+                if (hashString) {
+                    const hashParams = new URLSearchParams(hashString);
+                    for (const [key, value] of hashParams) {
+                        params[key] = value;
+                    }
+                }
+                
+                log('info', 'Parâmetros capturados com sucesso', params);
+                return params;
+                
+            } catch (error) {
+                log('error', 'Erro ao capturar parâmetros', error);
+                return {};
+            }
+        }
+        
+        // Construção do deep link melhorada
+        function buildDeepLink(params) {
+            try {
+                let deepLink = CONFIG.DEEP_LINK_SCHEME;
+                
+                // Parâmetros de autenticação prioritários
+                const authParams = [];
+                const relevantKeys = [
+                    'access_token', 'refresh_token', 'code', 'token', 
+                    'provider', 'expires_in', 'token_type', 'state'
+                ];
+                
+                relevantKeys.forEach(key => {
+                    if (params[key]) {
+                        authParams.push(`${key}=${encodeURIComponent(params[key])}`);
+                    }
+                });
+                
+                if (authParams.length > 0) {
+                    deepLink += '?' + authParams.join('&');
+                }
+                
+                log('info', `Deep link construído: ${deepLink}`);
+                return deepLink;
+                
+            } catch (error) {
+                log('error', 'Erro ao construir deep link', error);
+                return CONFIG.DEEP_LINK_SCHEME;
+            }
+        }
+        
+        // Detecção de plataforma
+        function getPlatform() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            if (userAgent.includes('iphone') || userAgent.includes('ipad')) return 'ios';
+            if (userAgent.includes('android')) return 'android';
+            return 'web';
+        }
+        
+        // Redirecionamento para o app
+        function redirectToApp(deepLink) {
+            return new Promise((resolve) => {
+                state.attempts++;
+                updateStatus(`Tentativa ${state.attempts} - Abrindo aplicativo...`);
+                
+                try {
+                    // Criar link oculto para redirecionamento
+                    const link = document.createElement('a');
+                    link.href = deepLink;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    
+                    // Tentar abrir o deep link
+                    link.click();
+                    
+                    // Alternativa: window.location
+                    setTimeout(() => {
+                        window.location.href = deepLink;
+                    }, 100);
+                    
+                    // Cleanup
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        resolve(true);
+                    }, 500);
+                    
+                    log('info', `Redirecionamento executado: ${deepLink}`);
+                    
+                } catch (error) {
+                    log('error', 'Erro no redirecionamento', error);
+                    resolve(false);
+                }
+            });
+        }
+        
+        // Estados visuais
+        function setSuccessState() {
+            elements.container.classList.add('success-state');
+            elements.title.textContent = '✅ Sucesso!';
+            elements.subtitle.textContent = 'Aplicativo aberto com sucesso';
+            elements.spinner.style.display = 'none';
+            state.success = true;
+        }
+        
+        function setErrorState() {
+            elements.container.classList.add('error-state');
+            elements.title.textContent = '⚠️ Aplicativo não encontrado';
+            elements.subtitle.textContent = 'Instale o Ray Club para continuar';
+            elements.spinner.style.display = 'none';
+        }
+        
+        function showFallback() {
+            const platform = getPlatform();
+            const storeUrl = platform === 'ios' ? CONFIG.APP_STORE_URL : CONFIG.PLAY_STORE_URL;
+            
+            elements.deepLinkBtn.href = state.deepLink;
+            elements.storeBtn.href = storeUrl;
+            elements.storeBtn.textContent = platform === 'ios' ? 'App Store' : 'Play Store';
+            elements.fallback.style.display = 'block';
+            
+            updateStatus('Toque em "Abrir Ray Club" ou baixe o app');
+        }
+        
+        // Função principal
+        async function handleAuthCallback() {
+            try {
+                log('info', 'Iniciando callback de autenticação');
+                log('info', `URL atual: ${window.location.href}`);
+                log('info', `Plataforma: ${getPlatform()}`);
+                
+                // Capturar parâmetros
+                state.params = getUrlParams();
+                
+                // Verificar se temos parâmetros de autenticação
+                const hasAuthParams = !!(
+                    state.params.access_token || 
+                    state.params.code || 
+                    state.params.token
+                );
+                
+                if (!hasAuthParams) {
+                    log('warn', 'Nenhum parâmetro de autenticação encontrado');
+                    updateStatus('Nenhum token de autenticação encontrado');
+                    
+                    setTimeout(() => {
+                        setErrorState();
+                        showFallback();
+                    }, 2000);
+                    return;
+                }
+                
+                // Construir deep link
+                state.deepLink = buildDeepLink(state.params);
+                
+                // Aguardar um pouco antes do redirecionamento
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Tentar abrir o app
+                updateStatus('Abrindo Ray Club...');
+                await redirectToApp(state.deepLink);
+                
+                // Aguardar um pouco para ver se o app abriu
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Se ainda estamos aqui, mostrar fallback
+                if (!state.success) {
+                    log('warn', 'App não abriu automaticamente');
+                    setErrorState();
+                    showFallback();
+                }
+                
+            } catch (error) {
+                log('error', 'Erro geral no callback', error);
+                updateStatus('Erro no processamento');
+                setErrorState();
+                showFallback();
+            }
+        }
+        
+        // Detectar se o usuário voltou para a página (app não abriu)
+        function detectPageReturn() {
+            let hidden = false;
+            
+            function handleVisibilityChange() {
+                if (document.hidden) {
+                    hidden = true;
+                    log('info', 'Página ficou oculta (app pode ter aberto)');
+                } else if (hidden) {
+                    hidden = false;
+                    log('info', 'Usuário voltou para a página');
+                    if (!state.success) {
+                        updateStatus('De volta à página - app não abriu');
+                        setTimeout(() => {
+                            setErrorState();
+                            showFallback();
+                        }, 1000);
+                    }
+                }
+            }
+            
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        }
+        
+        // Timeout de segurança
+        function setupTimeout() {
+            setTimeout(() => {
+                if (!state.success) {
+                    log('warn', `Timeout de ${CONFIG.TIMEOUT_MS}ms atingido`);
+                    setErrorState();
+                    showFallback();
+                }
+            }, CONFIG.TIMEOUT_MS);
+        }
+        
+        // Inicialização
+        function init() {
+            log('info', '🚀 Ray Club OAuth Callback iniciado');
+            
+            detectPageReturn();
+            setupTimeout();
+            handleAuthCallback();
+        }
+        
+        // Executar quando a página carregar
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+        
+    </script>
+</body>
+</html> 

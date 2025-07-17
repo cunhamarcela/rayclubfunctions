@@ -1,0 +1,464 @@
+record_workout_basic
+
+declare
+  v_id uuid;
+begin
+  insert into workout_records (
+    id,
+    user_id,
+    workout_id,
+    workout_name,
+    workout_type,
+    date,
+    duration_minutes,
+    challenge_id,
+    notes
+  ) values (
+    coalesce(p_workout_record_id, gen_random_uuid()),
+    p_user_id,
+    p_workout_id,
+    p_workout_name,
+    p_workout_type,
+    to_brt(p_date),
+    p_duration_minutes,
+    p_challenge_id,
+    p_notes
+  ) returning id into v_id;
+
+  -- USAR A FUNÇÃO CORRIGIDA
+  begin
+    perform process_workout_for_ranking_fixed(v_id);
+  exception when others then
+    insert into check_in_error_logs(user_id, challenge_id, workout_id, error_message, status, created_at)
+    values (p_user_id, p_challenge_id, v_id, sqlerrm, 'ranking_fail', to_brt(now()));
+  end;
+
+  return jsonb_build_object(
+    'success', true,
+    'workout_id', v_id,
+    'message', 'Treino registrado com sucesso'
+  );
+
+exception when others then
+  return jsonb_build_object(
+    'success', false,
+    'error', sqlerrm,
+    'code', sqlstate
+  );
+end;
+
+
+record_workout_basic_2
+
+declare
+  v_id uuid;
+begin
+  insert into workout_records (
+    id,
+    user_id,
+    workout_id,
+    workout_name,
+    workout_type,
+    date,
+    duration_minutes,
+    challenge_id,
+    notes
+  ) values (
+    coalesce(p_workout_record_id, gen_random_uuid()),
+    p_user_id,
+    p_workout_id,
+    p_workout_name,
+    p_workout_type,
+    to_brt(p_date),  -- ✅ CORREÇÃO AQUI
+    p_duration_minutes,
+    p_challenge_id,
+    p_notes
+  ) returning id into v_id;
+
+  begin
+    perform process_workout_for_ranking(v_id);
+  exception when others then
+    insert into check_in_error_logs(user_id, challenge_id, workout_id, error_message, status, created_at)
+    values (p_user_id, p_challenge_id, v_id, sqlerrm, 'ranking_fail', to_brt(now()));
+  end;
+
+  return jsonb_build_object(
+    'success', true,
+    'workout_id', v_id,
+    'message', 'Treino registrado com sucesso'
+  );
+
+exception when others then
+  return jsonb_build_object(
+    'success', false,
+    'error', sqlerrm,
+    'code', sqlstate
+  );
+end;
+
+process_workout_for_ranking
+
+
+declare
+    workout RECORD;
+    challenge_record RECORD;
+    user_name TEXT;
+    user_photo_url TEXT;
+    already_has_checkin BOOLEAN := FALSE;
+    points_to_add INTEGER := 10;
+    check_in_id UUID;
+    challenge_target_days INTEGER;
+    check_ins_count INTEGER := 0;
+    completion NUMERIC := 0;
+begin
+    select * into workout
+    from workout_records
+    where id = _workout_record_id;
+
+    if not found then
+        raise exception 'Treino não encontrado';
+    end if;
+
+    if workout.challenge_id is null then
+        update workout_processing_queue
+        set processed_for_ranking = true, processed_at = to_brt(now())
+        where workout_id = _workout_record_id;
+        return true;
+    end if;
+
+    select * into challenge_record
+    from challenges
+    where id = workout.challenge_id
+    for update;
+
+    if not found then
+        update workout_processing_queue
+        set processed_for_ranking = true,
+            processing_error = 'Desafio não encontrado',
+            processed_at = to_brt(now())
+        where workout_id = _workout_record_id;
+
+        insert into check_in_error_logs(user_id, challenge_id, workout_id, error_message, status, created_at)
+        values (workout.user_id, workout.challenge_id, _workout_record_id, 'Desafio não encontrado: ' || workout.challenge_id, 'error', to_brt(now()));
+        return false;
+    end if;
+
+    if not exists (
+        select 1 from challenge_participants
+        where challenge_id = workout.challenge_id and user_id = workout.user_id
+    ) then
+        update workout_processing_queue
+        set processed_for_ranking = true,
+            processing_error = 'Usuário não participa deste desafio',
+            processed_at = to_brt(now())
+        where workout_id = _workout_record_id;
+
+        insert into check_in_error_logs(user_id, challenge_id, workout_id, error_message, status, created_at)
+        values (workout.user_id, workout.challenge_id, _workout_record_id, 'Usuário não participa deste desafio', 'error', to_brt(now()));
+        return false;
+    end if;
+
+    if workout.duration_minutes < 45 then
+        update workout_processing_queue
+        set processed_for_ranking = true,
+            processing_error = 'Duração mínima não atingida (45min)',
+            processed_at = to_brt(now())
+        where workout_id = _workout_record_id;
+
+        insert into check_in_error_logs(user_id, challenge_id, workout_id, error_message, status, created_at)
+        values (workout.user_id, workout.challenge_id, _workout_record_id, 'Duração mínima não atingida: ' || workout.duration_minutes || 'min', 'skipped', to_brt(now()));
+        return false;
+    end if;
+
+    select exists (
+        select 1 from challenge_check_ins
+        where user_id = workout.user_id
+          and challenge_id = workout.challenge_id
+          and date_trunc('day', to_brt(check_in_date)) = date_trunc('day', to_brt(workout.date))
+    ) into already_has_checkin;
+
+    if already_has_checkin then
+        update workout_processing_queue
+        set processed_for_ranking = true,
+            processing_error = 'Check-in já existe para esta data',
+            processed_at = to_brt(now())
+        where workout_id = _workout_record_id;
+
+        insert into check_in_error_logs(user_id, challenge_id, workout_id, error_message, status, created_at)
+        values (workout.user_id, workout.challenge_id, _workout_record_id, 'Check-in já existe para a data: ' || workout.date, 'duplicate', to_brt(now()));
+        return false;
+    end if;
+
+    select coalesce(name, 'Usuário'), photo_url
+    into user_name, user_photo_url
+    from profiles
+    where id = workout.user_id;
+
+    challenge_target_days := greatest(1, date_part('day', challenge_record.end_date - challenge_record.start_date)::int + 1);
+
+    insert into challenge_check_ins(
+        id, challenge_id, user_id, check_in_date, workout_id,
+        points, workout_name, workout_type, duration_minutes,
+        user_name, user_photo_url, created_at
+    ) values (
+        gen_random_uuid(),
+        workout.challenge_id,
+        workout.user_id,
+        date_trunc('day', to_brt(workout.date)),
+        cast(workout.id as uuid),
+        points_to_add,
+        workout.workout_name,
+        workout.workout_type,
+        workout.duration_minutes,
+        user_name,
+        user_photo_url,
+        to_brt(now())
+    ) returning id into check_in_id;
+
+    select count(*) into check_ins_count
+    from challenge_check_ins
+    where challenge_id = workout.challenge_id and user_id = workout.user_id;
+
+    completion := least(100, (check_ins_count * 100.0) / challenge_target_days);
+
+    insert into challenge_progress(
+        challenge_id, user_id, points, check_ins_count, total_check_ins,
+        last_check_in, completion_percentage, created_at, updated_at,
+        user_name, user_photo_url
+    ) values (
+        workout.challenge_id,
+        workout.user_id,
+        points_to_add,
+        1,
+        1,
+        workout.date,
+        completion,
+        to_brt(now()),
+        to_brt(now()),
+        user_name,
+        user_photo_url
+    )
+    on conflict (challenge_id, user_id)
+    do update set
+        points = coalesce(challenge_progress.points, 0) + excluded.points,
+        check_ins_count = challenge_progress.check_ins_count + 1,
+        total_check_ins = challenge_progress.total_check_ins + 1,
+        last_check_in = excluded.last_check_in,
+        completion_percentage = least(100, ((challenge_progress.check_ins_count + 1) * 100.0) / challenge_target_days),
+        updated_at = to_brt(now()),
+        user_name = excluded.user_name,
+        user_photo_url = excluded.user_photo_url;
+
+    update workout_processing_queue
+    set processed_for_ranking = true, processed_at = to_brt(now())
+    where workout_id = _workout_record_id;
+
+    with ranked_users as (
+        select user_id, challenge_id,
+            dense_rank() over (
+                order by points desc, total_check_ins desc, last_check_in asc nulls last
+            ) as new_position
+        from challenge_progress
+        where challenge_id = workout.challenge_id
+    )
+    update challenge_progress cp
+    set position = ru.new_position
+    from ranked_users ru
+    where cp.challenge_id = ru.challenge_id and cp.user_id = ru.user_id;
+
+    return true;
+
+exception when others then
+    begin
+        insert into check_in_error_logs(user_id, challenge_id, workout_id, error_message, status, created_at)
+        values (workout.user_id, workout.challenge_id, _workout_record_id, sqlerrm, 'error', to_brt(now()));
+    exception when others then null;
+    end;
+    return false;
+end;
+
+
+process_workout_for_ranking_fixed
+
+
+declare
+    workout RECORD;
+    challenge_record RECORD;
+    user_name TEXT;
+    user_photo_url TEXT;
+    already_has_checkin BOOLEAN := FALSE;
+    points_to_add INTEGER := 10;
+    check_in_id UUID;
+    challenge_target_days INTEGER;
+    check_ins_count INTEGER := 0;
+    completion NUMERIC := 0;
+begin
+    select * into workout
+    from workout_records
+    where id = _workout_record_id;
+
+    if not found then
+        raise exception 'Treino não encontrado';
+    end if;
+
+    if workout.challenge_id is null then
+        update workout_processing_queue
+        set processed_for_ranking = true, processed_at = to_brt(now())
+        where workout_id = _workout_record_id;
+        return true;
+    end if;
+
+    select * into challenge_record
+    from challenges
+    where id = workout.challenge_id
+    for update;
+
+    if not found then
+        update workout_processing_queue
+        set processed_for_ranking = true,
+            processing_error = 'Desafio não encontrado',
+            processed_at = to_brt(now())
+        where workout_id = _workout_record_id;
+
+        insert into check_in_error_logs(user_id, challenge_id, workout_id, error_message, status, created_at)
+        values (workout.user_id, workout.challenge_id, _workout_record_id, 'Desafio não encontrado: ' || workout.challenge_id, 'error', to_brt(now()));
+        return false;
+    end if;
+
+    if not exists (
+        select 1 from challenge_participants
+        where challenge_id = workout.challenge_id and user_id = workout.user_id
+    ) then
+        update workout_processing_queue
+        set processed_for_ranking = true,
+            processing_error = 'Usuário não participa deste desafio',
+            processed_at = to_brt(now())
+        where workout_id = _workout_record_id;
+
+        insert into check_in_error_logs(user_id, challenge_id, workout_id, error_message, status, created_at)
+        values (workout.user_id, workout.challenge_id, _workout_record_id, 'Usuário não participa deste desafio', 'error', to_brt(now()));
+        return false;
+    end if;
+
+    if workout.duration_minutes < 45 then
+        update workout_processing_queue
+        set processed_for_ranking = true,
+            processing_error = 'Duração mínima não atingida (45min)',
+            processed_at = to_brt(now())
+        where workout_id = _workout_record_id;
+
+        insert into check_in_error_logs(user_id, challenge_id, workout_id, error_message, status, created_at)
+        values (workout.user_id, workout.challenge_id, _workout_record_id, 'Duração mínima não atingida: ' || workout.duration_minutes || 'min', 'skipped', to_brt(now()));
+        return false;
+    end if;
+
+    select exists (
+        select 1 from challenge_check_ins
+        where user_id = workout.user_id
+          and challenge_id = workout.challenge_id
+          and date_trunc('day', to_brt(check_in_date)) = date_trunc('day', to_brt(workout.date))
+    ) into already_has_checkin;
+
+    if already_has_checkin then
+        update workout_processing_queue
+        set processed_for_ranking = true,
+            processing_error = 'Check-in já existe para esta data',
+            processed_at = to_brt(now())
+        where workout_id = _workout_record_id;
+
+        insert into check_in_error_logs(user_id, challenge_id, workout_id, error_message, status, created_at)
+        values (workout.user_id, workout.challenge_id, _workout_record_id, 'Check-in já existe para a data: ' || workout.date, 'duplicate', to_brt(now()));
+        return false;
+    end if;
+
+    select coalesce(name, 'Usuário'), photo_url
+    into user_name, user_photo_url
+    from profiles
+    where id = workout.user_id;
+
+    challenge_target_days := greatest(1, date_part('day', challenge_record.end_date - challenge_record.start_date)::int + 1);
+
+    insert into challenge_check_ins(
+        id, challenge_id, user_id, check_in_date, workout_id,
+        points, workout_name, workout_type, duration_minutes,
+        user_name, user_photo_url, created_at
+    ) values (
+        gen_random_uuid(),
+        workout.challenge_id,
+        workout.user_id,
+        date_trunc('day', to_brt(workout.date)),
+        cast(workout.id as uuid),
+        points_to_add,
+        workout.workout_name,
+        workout.workout_type,
+        workout.duration_minutes,
+        user_name,
+        user_photo_url,
+        to_brt(now())
+    ) returning id into check_in_id;
+
+    select count(*) into check_ins_count
+    from challenge_check_ins
+    where challenge_id = workout.challenge_id and user_id = workout.user_id;
+
+    completion := least(100, (check_ins_count * 100.0) / challenge_target_days);
+
+    insert into challenge_progress(
+        challenge_id, user_id, points, check_ins_count, total_check_ins,
+        last_check_in, completion_percentage, created_at, updated_at,
+        user_name, user_photo_url
+    ) values (
+        workout.challenge_id,
+        workout.user_id,
+        points_to_add,
+        1,
+        1,
+        workout.date,
+        completion,
+        to_brt(now()),
+        to_brt(now()),
+        user_name,
+        user_photo_url
+    )
+    on conflict (challenge_id, user_id)
+    do update set
+        points = coalesce(challenge_progress.points, 0) + excluded.points,
+        check_ins_count = challenge_progress.check_ins_count + 1,
+        total_check_ins = challenge_progress.total_check_ins + 1,
+        last_check_in = excluded.last_check_in,
+        completion_percentage = least(100, ((challenge_progress.check_ins_count + 1) * 100.0) / challenge_target_days),
+        updated_at = to_brt(now()),
+        user_name = excluded.user_name,
+        user_photo_url = excluded.user_photo_url;
+
+    update workout_processing_queue
+    set processed_for_ranking = true, processed_at = to_brt(now())
+    where workout_id = _workout_record_id;
+
+    -- CORREÇÃO: Ranking com empate prioriza quem tem mais treinos registrados
+    with ranked_users as (
+        select user_id, challenge_id,
+            dense_rank() over (
+                order by points desc, 
+                (select count(*) from workout_records wr where wr.user_id = challenge_progress.user_id and wr.challenge_id = challenge_progress.challenge_id) desc,
+                last_check_in asc nulls last
+            ) as new_position
+        from challenge_progress
+        where challenge_id = workout.challenge_id
+    )
+    update challenge_progress cp
+    set position = ru.new_position
+    from ranked_users ru
+    where cp.challenge_id = ru.challenge_id and cp.user_id = ru.user_id;
+
+    return true;
+
+exception when others then
+    begin
+        insert into check_in_error_logs(user_id, challenge_id, workout_id, error_message, status, created_at)
+        values (workout.user_id, workout.challenge_id, _workout_record_id, sqlerrm, 'error', to_brt(now()));
+    exception when others then null;
+    end;
+    return false;
+end;
+

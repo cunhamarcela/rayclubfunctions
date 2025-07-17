@@ -1,0 +1,22 @@
+targets:
+  $default:
+    builders:
+      # Configure o tree-shaking para JSON serializable
+      json_serializable:
+        options:
+          explicit_to_json: true
+          include_if_null: false
+      
+      # Configure o tree-shaking para FlutterGen
+      flutter_gen:
+        enabled: true
+
+      # Configure o tree-shaking para Riverpod
+      riverpod_generator:
+        enabled: false  # Desabilitando temporariamente
+
+# Configuração para otimização de código
+global_options:
+  freezed:
+    runs_before:
+      - json_serializable 

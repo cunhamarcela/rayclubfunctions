@@ -1,0 +1,32 @@
+{
+  "name": "ray_club_app",
+  "version": "1.0.0",
+  "description": "Ray Club App - Aplicativo de fitness e bem-estar",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy-triggers": "node scripts/deploy_triggers.js",
+    "deploy-triggers-dry": "node scripts/deploy_triggers.js --dry-run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/ray_club_app.git"
+  },
+  "keywords": [
+    "fitness",
+    "health",
+    "flutter",
+    "dart",
+    "supabase"
+  ],
+  "author": "Ray Club Team",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yourusername/ray_club_app/issues"
+  },
+  "homepage": "https://github.com/yourusername/ray_club_app#readme",
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.21.0",
+    "dotenv": "^16.0.3"
+  }
+} 

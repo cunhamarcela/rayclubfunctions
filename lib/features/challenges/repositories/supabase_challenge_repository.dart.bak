@@ -1,0 +1,1600 @@
+// Flutter imports:
+import 'package:flutter/foundation.dart';
+import 'dart:io';
+
+// Package imports:
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide StorageException, AuthException;
+
+// Project imports:
+import '../../../core/errors/app_exception.dart';
+import '../../../core/offline/offline_repository_helper.dart';
+import '../../../core/providers/supabase_providers.dart';
+import '../../../services/supabase_client.dart';
+import '../../../utils/text_sanitizer.dart';
+import '../../../utils/log_utils.dart';
+import '../models/challenge.dart';
+import '../models/challenge_progress.dart';
+import '../models/challenge_group.dart';
+import 'challenge_repository.dart';
+
+/// Provider para o repositório de desafios
+final challengeRepositoryProvider = Provider<ChallengeRepository>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  final offlineHelper = ref.watch(isSupabaseOnlineProvider) 
+      ? ref.watch(offlineOperationQueueProvider) 
+      : null;
+  
+  return SupabaseChallengeRepository(client, offlineHelper);
+});
+
+/// Implementação do repositório de desafios usando Supabase
+class SupabaseChallengeRepository implements ChallengeRepository {
+  final SupabaseClient _client;
+  final OfflineRepositoryHelper? _offlineHelper;
+  
+  // Constantes para nomes de tabelas
+  static const String _challengesTable = 'challenges';
+  static const String _challengeProgressTable = 'challenge_progress';
+  static const String _challengeParticipantsTable = 'challenge_participants';
+  static const String _challengeGroupsTable = 'challenge_groups';
+  static const String _challengeGroupMembersTable = 'challenge_group_members';
+  static const String _challengeGroupInvitesTable = 'challenge_group_invites';
+  static const String _challengeCheckInsTable = 'challenge_check_ins';
+  static const String _challengeBonusesTable = 'challenge_bonuses';
+  
+  // Constante para bucket de imagens
+  static const String _challengeImagesBucket = 'challenge_images';
+  
+  SupabaseChallengeRepository(this._client, [this._offlineHelper]);
+  
+  @override
+  Future<List<Challenge>> getChallenges() async {
+    try {
+      final response = await _client
+          .from(_challengesTable)
+          .select()
+          .order('created_at', ascending: false)
+          .execute();
+      
+      return response.data
+          .map<Challenge>((json) => Challenge.fromJson(json))
+          .toList();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar desafios');
+    }
+  }
+  
+  @override
+  Future<Challenge> getChallengeById(String id) async {
+    try {
+      final response = await _client
+          .from(_challengesTable)
+          .select()
+          .eq('id', id)
+          .single()
+          .execute();
+      
+      return Challenge.fromJson(response.data);
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar desafio');
+    }
+  }
+  
+  @override
+  Future<List<Challenge>> getUserChallenges({required String userId}) async {
+    try {
+      // Buscar IDs de desafios que o usuário participa
+      final participantResponse = await _client
+          .from(_challengeParticipantsTable)
+          .select('challenge_id')
+          .eq('user_id', userId)
+          .execute();
+      
+      final challengeIds = participantResponse.data
+          .map<String>((item) => item['challenge_id'] as String)
+          .toList();
+      
+      if (challengeIds.isEmpty) {
+        return [];
+      }
+      
+      // Buscar detalhes dos desafios
+      final challengesResponse = await _client
+          .from(_challengesTable)
+          .select()
+          .in_('id', challengeIds)
+          .order('created_at', ascending: false)
+          .execute();
+      
+      return challengesResponse.data
+          .map<Challenge>((json) => Challenge.fromJson(json))
+          .toList();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar desafios do usuário');
+    }
+  }
+  
+  @override
+  Future<List<Challenge>> getActiveChallenges() async {
+    try {
+      final now = DateTime.now().toIso8601String();
+      
+      final response = await _client
+          .from(_challengesTable)
+          .select()
+          .lt('start_date', now)
+          .gt('end_date', now)
+          .order('created_at', ascending: false)
+          .execute();
+      
+      return response.data
+          .map<Challenge>((json) => Challenge.fromJson(json))
+          .toList();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar desafios ativos');
+    }
+  }
+  
+  @override
+  Future<List<Challenge>> getUserActiveChallenges(String userId) async {
+    try {
+      final now = DateTime.now().toIso8601String();
+      
+      // Buscar IDs de desafios ativos que o usuário participa
+      final participantResponse = await _client
+          .from(_challengeParticipantsTable)
+          .select('challenge_id')
+          .eq('user_id', userId)
+          .execute();
+      
+      final challengeIds = participantResponse.data
+          .map<String>((item) => item['challenge_id'] as String)
+          .toList();
+      
+      if (challengeIds.isEmpty) {
+        return [];
+      }
+      
+      // Buscar detalhes dos desafios ativos
+      final challengesResponse = await _client
+          .from(_challengesTable)
+          .select()
+          .in_('id', challengeIds)
+          .lt('start_date', now)
+          .gt('end_date', now)
+          .order('created_at', ascending: false)
+          .execute();
+      
+      return challengesResponse.data
+          .map<Challenge>((json) => Challenge.fromJson(json))
+          .toList();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar desafios ativos do usuário');
+    }
+  }
+  
+  @override
+  Future<Challenge?> getOfficialChallenge() async {
+    try {
+      final now = DateTime.now().toIso8601String();
+      
+      final response = await _client
+          .from(_challengesTable)
+          .select()
+          .eq('is_official', true)
+          .lt('start_date', now)
+          .gt('end_date', now)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .execute();
+      
+      if (response.data.isEmpty) {
+        return null;
+      }
+      
+      return Challenge.fromJson(response.data[0]);
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar desafio oficial');
+    }
+  }
+  
+  @override
+  Future<List<Challenge>> getOfficialChallenges() async {
+    try {
+      final response = await _client
+          .from(_challengesTable)
+          .select()
+          .eq('is_official', true)
+          .order('created_at', ascending: false)
+          .execute();
+      
+      return response.data
+          .map<Challenge>((json) => Challenge.fromJson(json))
+          .toList();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar desafios oficiais');
+    }
+  }
+  
+  @override
+  Future<Challenge?> getMainChallenge() async {
+    try {
+      final now = DateTime.now().toIso8601String();
+      
+      final response = await _client
+          .from(_challengesTable)
+          .select()
+          .eq('is_featured', true)
+          .lt('start_date', now)
+          .gt('end_date', now)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .execute();
+      
+      if (response.data.isEmpty) {
+        return null;
+      }
+      
+      return Challenge.fromJson(response.data[0]);
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar desafio em destaque');
+    }
+  }
+  
+  @override
+  Future<Challenge> createChallenge(Challenge challenge) async {
+    try {
+      // Se houver uma imagem para o desafio, fazer o upload
+      String? imageUrl = challenge.imageUrl;
+      if (challenge.localImagePath != null) {
+        imageUrl = await _uploadChallengeImage(
+          File(challenge.localImagePath!),
+          challenge.id,
+        );
+      }
+      
+      // Preparar dados para inserção
+      final challengeData = challenge.toJson();
+      challengeData['image_url'] = imageUrl;
+      challengeData['created_at'] = DateTime.now().toIso8601String();
+      challengeData['updated_at'] = DateTime.now().toIso8601String();
+      
+      // Remover campos que não são colunas na tabela
+      challengeData.remove('local_image_path');
+      
+      final response = await _client
+          .from(_challengesTable)
+          .insert(challengeData)
+          .execute();
+      
+      if (response.error != null) {
+        throw StorageException(
+          message: response.error!.message,
+          code: response.error!.code,
+        );
+      }
+      
+      return Challenge.fromJson(response.data[0]);
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao criar desafio');
+    }
+  }
+  
+  @override
+  Future<void> updateChallenge(Challenge challenge) async {
+    try {
+      // Se houver uma nova imagem para o desafio, fazer o upload
+      String? imageUrl = challenge.imageUrl;
+      if (challenge.localImagePath != null) {
+        imageUrl = await _uploadChallengeImage(
+          File(challenge.localImagePath!),
+          challenge.id,
+        );
+      }
+      
+      // Preparar dados para atualização
+      final challengeData = challenge.toJson();
+      if (imageUrl != null) {
+        challengeData['image_url'] = imageUrl;
+      }
+      challengeData['updated_at'] = DateTime.now().toIso8601String();
+      
+      // Remover campos que não são colunas na tabela
+      challengeData.remove('local_image_path');
+      
+      final response = await _client
+          .from(_challengesTable)
+          .update(challengeData)
+          .eq('id', challenge.id)
+          .execute();
+      
+      if (response.error != null) {
+        throw StorageException(
+          message: response.error!.message,
+          code: response.error!.code,
+        );
+      }
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao atualizar desafio');
+    }
+  }
+  
+  @override
+  Future<void> deleteChallenge(String id) async {
+    try {
+      // Primeiro deletar dados relacionados
+      await _client
+          .from(_challengeParticipantsTable)
+          .delete()
+          .eq('challenge_id', id)
+          .execute();
+      
+      await _client
+          .from(_challengeProgressTable)
+          .delete()
+          .eq('challenge_id', id)
+          .execute();
+      
+      await _client
+          .from(_challengeCheckInsTable)
+          .delete()
+          .eq('challenge_id', id)
+          .execute();
+      
+      await _client
+          .from(_challengeBonusesTable)
+          .delete()
+          .eq('challenge_id', id)
+          .execute();
+      
+      // Por fim, deletar o desafio
+      final response = await _client
+          .from(_challengesTable)
+          .delete()
+          .eq('id', id)
+          .execute();
+      
+      if (response.error != null) {
+        throw StorageException(
+          message: response.error!.message,
+          code: response.error!.code,
+        );
+      }
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao deletar desafio');
+    }
+  }
+  
+  @override
+  Future<void> joinChallenge(String challengeId, String userId) async {
+    try {
+      // Verificar se o usuário já participa
+      final checkResponse = await _client
+          .from(_challengeParticipantsTable)
+          .select()
+          .eq('challenge_id', challengeId)
+          .eq('user_id', userId)
+          .execute();
+      
+      if (checkResponse.data.isNotEmpty) {
+        // Usuário já participa, não precisa fazer nada
+        return;
+      }
+      
+      // Adicionar participante
+      final response = await _client
+          .from(_challengeParticipantsTable)
+          .insert({
+            'challenge_id': challengeId,
+            'user_id': userId,
+            'joined_at': DateTime.now().toIso8601String(),
+          })
+          .execute();
+      
+      if (response.error != null) {
+        throw StorageException(
+          message: response.error!.message,
+          code: response.error!.code,
+        );
+      }
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao participar do desafio');
+    }
+  }
+  
+  @override
+  Future<void> leaveChallenge(String challengeId, String userId) async {
+    try {
+      // Remover participante
+      final response = await _client
+          .from(_challengeParticipantsTable)
+          .delete()
+          .eq('challenge_id', challengeId)
+          .eq('user_id', userId)
+          .execute();
+      
+      if (response.error != null) {
+        throw StorageException(
+          message: response.error!.message,
+          code: response.error!.code,
+        );
+      }
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao sair do desafio');
+    }
+  }
+  
+  @override
+  Future<void> updateUserProgress({
+    required String challengeId,
+    required String userId,
+    required String userName,
+    String? userPhotoUrl,
+    required int points,
+    required double completionPercentage,
+  }) async {
+    try {
+      // Verificar se já existe um registro de progresso
+      final checkResponse = await _client
+          .from(_challengeProgressTable)
+          .select()
+          .eq('challenge_id', challengeId)
+          .eq('user_id', userId)
+          .execute();
+      
+      if (checkResponse.data.isEmpty) {
+        // Se não existe, criar um novo
+        await createUserProgress(
+          challengeId: challengeId,
+          userId: userId,
+          userName: userName,
+          userPhotoUrl: userPhotoUrl,
+          points: points,
+          completionPercentage: completionPercentage,
+        );
+        return;
+      }
+      
+      // Atualizar progresso existente
+      final response = await _client
+          .from(_challengeProgressTable)
+          .update({
+            'user_name': userName,
+            'user_photo_url': userPhotoUrl,
+            'points': points,
+            'completion_percentage': completionPercentage,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('challenge_id', challengeId)
+          .eq('user_id', userId)
+          .execute();
+      
+      if (response.error != null) {
+        throw StorageException(
+          message: response.error!.message,
+          code: response.error!.code,
+        );
+      }
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao atualizar progresso do usuário');
+    }
+  }
+  
+  @override
+  Future<void> createUserProgress({
+    required String challengeId,
+    required String userId,
+    required String userName,
+    String? userPhotoUrl,
+    required int points,
+    required double completionPercentage,
+  }) async {
+    try {
+      final response = await _client
+          .from(_challengeProgressTable)
+          .insert({
+            'challenge_id': challengeId,
+            'user_id': userId,
+            'user_name': userName,
+            'user_photo_url': userPhotoUrl,
+            'points': points,
+            'completion_percentage': completionPercentage,
+            'created_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .execute();
+      
+      if (response.error != null) {
+        throw StorageException(
+          message: response.error!.message,
+          code: response.error!.code,
+        );
+      }
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao criar progresso do usuário');
+    }
+  }
+  
+  @override
+  Future<ChallengeProgress?> getUserProgress({
+    required String challengeId,
+    required String userId,
+  }) async {
+    try {
+      final response = await _client
+          .from(_challengeProgressTable)
+          .select()
+          .eq('challenge_id', challengeId)
+          .eq('user_id', userId)
+          .maybeSingle();
+      
+      if (response == null) {
+        return null;
+      }
+      
+      return ChallengeProgress.fromJson(response);
+    } catch (e) {
+      debugPrint('Erro ao buscar progresso do usuário: $e');
+      return null;
+    }
+  }
+  
+  @override
+  Future<List<ChallengeProgress>> getChallengeProgress(String challengeId) async {
+    try {
+      final response = await _client
+          .from(_challengeProgressTable)
+          .select()
+          .eq('challenge_id', challengeId)
+          .order('points', ascending: false)
+          .execute();
+      
+      return response.data
+          .map<ChallengeProgress>((json) => ChallengeProgress.fromJson(json))
+          .toList();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar ranking do desafio');
+    }
+  }
+  
+  @override
+  Stream<List<ChallengeProgress>> watchChallengeParticipants(
+    String challengeId, {
+    int limit = 50,
+    int offset = 0,
+  }) {
+    try {
+      return _client
+          .from(_challengeProgressTable)
+          .stream(primaryKey: ['challenge_id', 'user_id'])
+          .eq('challenge_id', challengeId)
+          .order('points', ascending: false)
+          .limit(limit)
+          .map((data) {
+            return data
+                .map<ChallengeProgress>((json) => ChallengeProgress.fromJson(json))
+                .toList();
+          });
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao observar participantes do desafio');
+    }
+  }
+  
+  @override
+  Future<List<ChallengeGroupInvite>> getPendingInvites(String userId) async {
+    try {
+      final response = await _client
+          .from(_challengeGroupInvitesTable)
+          .select()
+          .eq('invitee_id', userId)
+          .eq('status', InviteStatus.pending.index)
+          .order('created_at', ascending: false);
+      
+      return response.map<ChallengeGroupInvite>((json) {
+        // Map the database fields to the model fields
+        return ChallengeGroupInvite(
+          id: json['id'],
+          groupId: json['group_id'],
+          groupName: json['group_name'],
+          inviterId: json['inviter_id'],
+          inviterName: json['inviter_name'],
+          inviteeId: json['invitee_id'],
+          status: InviteStatus.values[json['status'] as int],
+          createdAt: DateTime.parse(json['created_at']),
+          respondedAt: json['responded_at'] != null 
+              ? DateTime.parse(json['responded_at']) 
+              : null,
+        );
+      }).toList();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar convites pendentes');
+    }
+  }
+  
+  @override
+  Future<bool> isCurrentUserAdmin() async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) {
+        return false;
+      }
+      
+      final response = await _client
+          .rpc('is_admin', params: {'user_id': userId})
+          .execute();
+      
+      return response.data ?? false;
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao verificar status de admin');
+    }
+  }
+  
+  @override
+  Future<void> toggleAdminStatus() async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) {
+        throw AppAuthException(message: 'Usuário não autenticado');
+      }
+      
+      await _client
+          .rpc('toggle_admin_status', params: {'user_id': userId})
+          .execute();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao alterar status de admin');
+    }
+  }
+  
+  @override
+  Future<ChallengeGroup> createGroup({
+    required String challengeId,
+    required String creatorId,
+    required String name,
+    String? description,
+  }) async {
+    try {
+      final response = await _client
+          .from(_challengeGroupsTable)
+          .insert({
+            'challenge_id': challengeId,
+            'creator_id': creatorId,
+            'name': name,
+            'description': description,
+            'created_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .execute();
+      
+      if (response.error != null) {
+        throw StorageException(
+          message: response.error!.message,
+          code: response.error!.code,
+        );
+      }
+      
+      final groupId = response.data[0]['id'];
+      
+      // Adicionar o criador como membro do grupo
+      await _client
+          .from(_challengeGroupMembersTable)
+          .insert({
+            'group_id': groupId,
+            'user_id': creatorId,
+            'joined_at': DateTime.now().toIso8601String(),
+          })
+          .execute();
+      
+      return ChallengeGroup.fromJson(response.data[0]);
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao criar grupo');
+    }
+  }
+  
+  @override
+  Future<ChallengeGroup> getGroupById(String groupId) async {
+    try {
+      final response = await _client
+          .from(_challengeGroupsTable)
+          .select()
+          .eq('id', groupId)
+          .single()
+          .execute();
+      
+      return ChallengeGroup.fromJson(response.data);
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar grupo');
+    }
+  }
+  
+  @override
+  Future<List<ChallengeGroup>> getUserCreatedGroups(String userId) async {
+    try {
+      final response = await _client
+          .from(_challengeGroupsTable)
+          .select()
+          .eq('creator_id', userId)
+          .order('created_at', ascending: false)
+          .execute();
+      
+      return response.data
+          .map<ChallengeGroup>((json) => ChallengeGroup.fromJson(json))
+          .toList();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar grupos criados pelo usuário');
+    }
+  }
+  
+  @override
+  Future<List<ChallengeGroup>> getUserMemberGroups(String userId) async {
+    try {
+      final response = await _client
+          .from(_challengeGroupMembersTable)
+          .select('group_id')
+          .eq('user_id', userId)
+          .execute();
+      
+      if (response.data.isEmpty) {
+        return [];
+      }
+      
+      final groupIds = response.data
+          .map<String>((json) => json['group_id'] as String)
+          .toList();
+      
+      final groupsResponse = await _client
+          .from(_challengeGroupsTable)
+          .select()
+          .inFilter('id', groupIds)
+          .execute();
+      
+      return groupsResponse.data
+          .map<ChallengeGroup>((json) => ChallengeGroup.fromJson(json))
+          .toList();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar grupos dos quais o usuário é membro');
+    }
+  }
+  
+  @override
+  Future<void> updateGroup(ChallengeGroup group) async {
+    try {
+      await _client
+          .from(_challengeGroupsTable)
+          .update({
+            'name': group.name,
+            'description': group.description,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', group.id)
+          .execute();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao atualizar grupo');
+    }
+  }
+  
+  @override
+  Future<void> deleteGroup(String groupId) async {
+    try {
+      // Primeiro remover registros associados
+      await _client
+          .from(_challengeGroupMembersTable)
+          .delete()
+          .eq('group_id', groupId)
+          .execute();
+      
+      await _client
+          .from(_challengeGroupInvitesTable)
+          .delete()
+          .eq('group_id', groupId)
+          .execute();
+      
+      // Depois remover o grupo
+      await _client
+          .from(_challengeGroupsTable)
+          .delete()
+          .eq('id', groupId)
+          .execute();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao excluir grupo');
+    }
+  }
+  
+  @override
+  Future<List<String>> getGroupMembers(String groupId) async {
+    try {
+      final response = await _client
+          .from(_challengeGroupMembersTable)
+          .select('user_id')
+          .eq('group_id', groupId)
+          .execute();
+      
+      return response.data
+          .map<String>((json) => json['user_id'] as String)
+          .toList();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar membros do grupo');
+    }
+  }
+  
+  @override
+  Future<void> inviteUserToGroup(String groupId, String inviterId, String inviteeId) async {
+    try {
+      // Verificar se o usuário já é membro do grupo
+      final checkMemberResponse = await _client
+          .from(_challengeGroupMembersTable)
+          .select()
+          .eq('group_id', groupId)
+          .eq('user_id', inviteeId)
+          .execute();
+      
+      if (checkMemberResponse.data.isNotEmpty) {
+        throw StorageException(
+          message: 'O usuário já é membro deste grupo',
+          code: 'user_already_member',
+        );
+      }
+      
+      // Verificar se já existe um convite pendente
+      final checkInviteResponse = await _client
+          .from(_challengeGroupInvitesTable)
+          .select()
+          .eq('group_id', groupId)
+          .eq('invitee_id', inviteeId)
+          .eq('status', 0) // 0 = pendente
+          .execute();
+      
+      if (checkInviteResponse.data.isNotEmpty) {
+        throw StorageException(
+          message: 'Já existe um convite pendente para este usuário',
+          code: 'invite_already_exists',
+        );
+      }
+      
+      // Criar o convite
+      await _client
+          .from(_challengeGroupInvitesTable)
+          .insert({
+            'group_id': groupId,
+            'inviter_id': inviterId,
+            'invitee_id': inviteeId,
+            'status': 0, // 0 = pendente
+            'created_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .execute();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao convidar usuário para o grupo');
+    }
+  }
+  
+  @override
+  Future<void> respondToGroupInvite(String inviteId, bool accept) async {
+    try {
+      final inviteResponse = await _client
+          .from(_challengeGroupInvitesTable)
+          .select()
+          .eq('id', inviteId)
+          .single()
+          .execute();
+      
+      final invite = inviteResponse.data;
+      final groupId = invite['group_id'];
+      final inviteeId = invite['invitee_id'];
+      
+      // Atualizar o status do convite
+      // O status é armazenado como inteiro no banco: 0=pendente, 1=aceito, 2=recusado
+      final newStatus = accept ? 1 : 2; // 1 = aceito, 2 = recusado
+      
+      await _client
+          .from(_challengeGroupInvitesTable)
+          .update({
+            'status': newStatus,
+            'updated_at': DateTime.now().toIso8601String(),
+            'responded_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', inviteId)
+          .execute();
+      
+      // Se aceito, adicionar usuário ao grupo
+      if (accept) {
+        await _client
+            .from(_challengeGroupMembersTable)
+            .insert({
+              'group_id': groupId,
+              'user_id': inviteeId,
+              'joined_at': DateTime.now().toIso8601String(),
+              'created_at': DateTime.now().toIso8601String(),
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .execute();
+      }
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao responder convite de grupo');
+    }
+  }
+  
+  @override
+  Future<void> removeUserFromGroup(String groupId, String userId) async {
+    try {
+      await _client
+          .from(_challengeGroupMembersTable)
+          .delete()
+          .eq('group_id', groupId)
+          .eq('user_id', userId)
+          .execute();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao remover usuário do grupo');
+    }
+  }
+  
+  @override
+  Future<List<ChallengeProgress>> getGroupRanking(String groupId) async {
+    try {
+      final response = await _client
+          .rpc('get_group_ranking', params: {'group_id_param': groupId})
+          .execute();
+      
+      return response.data
+          .map<ChallengeProgress>((json) => ChallengeProgress.fromJson(json))
+          .toList();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar ranking do grupo');
+    }
+  }
+  
+  @override
+  Future<bool> hasCheckedInOnDate(String userId, String challengeId, DateTime date) async {
+    try {
+      final formattedDate = date.toIso8601String().split('T')[0];
+      
+      final response = await _client
+          .from(_challengeCheckInsTable)
+          .select('id')
+          .eq('user_id', userId)
+          .eq('challenge_id', challengeId)
+          .eq('check_in_date', formattedDate)
+          .execute();
+      
+      return response.data.isNotEmpty;
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao verificar check-in na data');
+    }
+  }
+  
+  @override
+  Future<bool> hasCheckedInToday(String userId, String challengeId) async {
+    try {
+      final today = DateTime.now().toIso8601String().split('T')[0]; // Formato YYYY-MM-DD
+      
+      final response = await _client
+          .from(_challengeCheckInsTable)
+          .select('id')
+          .eq('user_id', userId)
+          .eq('challenge_id', challengeId)
+          .eq('check_in_date', today)
+          .maybeSingle();
+      
+      return response != null;
+    } catch (e) {
+      debugPrint('Erro ao verificar check-in do dia: $e');
+      return false;
+    }
+  }
+  
+  @override
+  Future<int> getConsecutiveDaysCount(String userId, String challengeId) async {
+    try {
+      // Buscar todos os check-ins ordenados por data
+      final response = await _client
+          .from(_challengeCheckInsTable)
+          .select('check_in_date')
+          .eq('user_id', userId)
+          .eq('challenge_id', challengeId)
+          .order('check_in_date', ascending: false);
+      
+      if (response.isEmpty) {
+        return 0;
+      }
+      
+      // Verificar sequência de check-ins consecutivos
+      final List<DateTime> checkInDates = response
+          .map<DateTime>((item) => DateTime.parse(item['check_in_date']))
+          .toList();
+      
+      // Ordena as datas
+      checkInDates.sort((a, b) => b.compareTo(a)); // Mais recentes primeiro
+      
+      // Verifica o último check-in
+      final lastCheckIn = checkInDates.first;
+      final today = DateTime.now();
+      final yesterday = DateTime(today.year, today.month, today.day - 1);
+      
+      // Se o último check-in não for hoje ou ontem, reinicia a contagem
+      if (lastCheckIn.year != today.year || 
+          lastCheckIn.month != today.month || 
+          (lastCheckIn.day != today.day && lastCheckIn.day != yesterday.day)) {
+        return 0;
+      }
+      
+      // Conta dias consecutivos
+      int consecutiveDays = 1;
+      DateTime previousDate = checkInDates.first;
+      
+      for (int i = 1; i < checkInDates.length; i++) {
+        final currentDate = checkInDates[i];
+        final difference = previousDate.difference(currentDate).inDays;
+        
+        if (difference == 1) {
+          // Dias consecutivos
+          consecutiveDays++;
+          previousDate = currentDate;
+        } else if (difference > 1) {
+          // Quebra na sequência
+          break;
+        }
+      }
+      
+      return consecutiveDays;
+    } catch (e) {
+      debugPrint('Erro ao calcular dias consecutivos: $e');
+      return 0;
+    }
+  }
+  
+  @override
+  Future<int> getCurrentStreak(String userId, String challengeId) async {
+    try {
+      // Tentar obter o streak direto do registro de progresso
+      final progressResponse = await _client
+          .from(_challengeProgressTable)
+          .select('consecutive_days')
+          .eq('user_id', userId)
+          .eq('challenge_id', challengeId)
+          .maybeSingle();
+      
+      if (progressResponse != null && progressResponse['consecutive_days'] != null) {
+        return progressResponse['consecutive_days'] as int;
+      }
+      
+      // Se não encontrar, calcular manualmente
+      return await getConsecutiveDaysCount(userId, challengeId);
+    } catch (e) {
+      debugPrint('Erro ao obter streak atual: $e');
+      return 0;
+    }
+  }
+  
+  @override
+  Future<void> addPointsToUserProgress({
+    required String challengeId,
+    required String userId,
+    required int pointsToAdd,
+  }) async {
+    try {
+      // Verificar se existe um registro de progresso
+      final progressResponse = await _client
+          .from(_challengeProgressTable)
+          .select('points')
+          .eq('challenge_id', challengeId)
+          .eq('user_id', userId)
+          .single()
+          .execute();
+      
+      if (progressResponse.error != null) {
+        // Se não existe registro, criar um novo com os pontos iniciais
+        final userResponse = await _client
+            .from('profiles')
+            .select('name, photo_url')
+            .eq('id', userId)
+            .single()
+            .execute();
+        
+        final userName = userResponse.data['name'] as String? ?? 'Usuário';
+        final userPhotoUrl = userResponse.data['photo_url'] as String?;
+        
+        await createUserProgress(
+          challengeId: challengeId,
+          userId: userId,
+          userName: userName,
+          userPhotoUrl: userPhotoUrl,
+          points: pointsToAdd,
+          completionPercentage: 0.0,
+        );
+        return;
+      }
+      
+      // Atualizar os pontos existentes
+      final currentPoints = progressResponse.data['points'] as int? ?? 0;
+      final newPoints = currentPoints + pointsToAdd;
+      
+      await _client
+          .from(_challengeProgressTable)
+          .update({
+            'points': newPoints,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('challenge_id', challengeId)
+          .eq('user_id', userId)
+          .execute();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao adicionar pontos ao progresso do usuário');
+    }
+  }
+  
+  // Método auxiliar para upload de imagens
+  Future<String?> _uploadChallengeImage(File file, String challengeId) async {
+    try {
+      // Nome do arquivo: challenge_id_timestamp.extensão
+      final extension = file.path.split('.').last;
+      final fileName = '${challengeId}_${DateTime.now().millisecondsSinceEpoch}.$extension';
+      
+      final response = await _client.storage
+          .from(_challengeImagesBucket)
+          .upload(fileName, file);
+      
+      // Obter URL pública
+      final String publicUrl = _client.storage
+          .from(_challengeImagesBucket)
+          .getPublicUrl(fileName);
+      
+      return publicUrl;
+    } catch (e, stackTrace) {
+      LogUtils.error(
+        'Erro ao fazer upload de imagem para desafio',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return null;
+    }
+  }
+  
+  @override
+  Stream<List<ChallengeProgress>> watchChallengeRanking({
+    required String challengeId,
+  }) {
+    return _client
+        .from(_challengeProgressTable)
+        .stream(primaryKey: ['id'])
+        .eq('challenge_id', challengeId)
+        .order('points', ascending: false)
+        .limit(100)
+        .map((data) => data
+            .map<ChallengeProgress>((json) => ChallengeProgress.fromJson(json))
+            .toList());
+  }
+
+  @override
+  Stream<List<ChallengeProgress>> watchGroupRanking(String groupId) {
+    // Primeiro precisa buscar os membros do grupo
+    return _client
+        .from(_challengeGroupMembersTable)
+        .stream(primaryKey: ['id'])
+        .eq('group_id', groupId)
+        .map((members) {
+          if (members.isEmpty) return <ChallengeProgress>[];
+          
+          final userIds = members.map<String>((m) => m['user_id'] as String).toList();
+          
+          // Depois buscar o progresso dos membros
+          return _client
+              .from(_challengeProgressTable)
+              .stream(primaryKey: ['id'])
+              .in_('user_id', userIds)
+              .order('points', ascending: false)
+              .map((data) => data
+                  .map<ChallengeProgress>((json) => ChallengeProgress.fromJson(json))
+                  .toList());
+        })
+        .asyncExpand((event) => event);
+  }
+
+  @override
+  Future<bool> canAccessGroup(String groupId) async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) {
+        return false;
+      }
+      
+      // Verificar se o usuário é membro do grupo
+      final response = await _client
+          .from(_challengeGroupMembersTable)
+          .select()
+          .eq('group_id', groupId)
+          .eq('user_id', userId)
+          .execute();
+          
+      return response.data.isNotEmpty;
+    } catch (e) {
+      debugPrint('Erro ao verificar acesso ao grupo: $e');
+      return false;
+    }
+  }
+  
+  @override
+  Future<List<ChallengeGroup>> getUserGroups(String challengeId) async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) {
+        throw AppAuthException(message: 'Usuário não autenticado');
+      }
+      
+      // Buscar grupos onde o usuário é membro
+      final response = await _client
+          .from(_challengeGroupMembersTable)
+          .select('group_id')
+          .eq('user_id', userId)
+          .execute();
+          
+      if (response.error != null) {
+        throw AppStorageException(
+          message: response.error!.message,
+          code: response.error!.code,
+        );
+      }
+      
+      if (response.data.isEmpty) {
+        return [];
+      }
+      
+      // Extrair IDs dos grupos
+      final groupIds = response.data.map<String>((item) => item['group_id'] as String).toList();
+      
+      // Buscar detalhes dos grupos que são do desafio especificado
+      final groupsResponse = await _client
+          .from(_challengeGroupsTable)
+          .select()
+          .eq('challenge_id', challengeId)
+          .in_('id', groupIds)
+          .execute();
+          
+      if (groupsResponse.error != null) {
+        throw AppStorageException(
+          message: groupsResponse.error!.message,
+          code: groupsResponse.error!.code,
+        );
+      }
+      
+      return groupsResponse.data
+          .map<ChallengeGroup>((json) => ChallengeGroup.fromJson(json))
+          .toList();
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao buscar grupos do usuário');
+    }
+  }
+  
+  @override
+  Future<CheckInResult> recordChallengeCheckIn({
+    required String challengeId,
+    required String userId,
+    required String workoutId,
+    required String workoutName,
+    required String workoutType,
+    required DateTime date,
+    required int durationMinutes,
+  }) async {
+    try {
+      // Verificar se o usuário já fez check-in hoje
+      final hasAlreadyCheckedIn = await hasCheckedInToday(userId, challengeId);
+      if (hasAlreadyCheckedIn) {
+        return CheckInResult(
+          success: false,
+          pointsAwarded: 0,
+          message: 'Você já fez check-in hoje para este desafio',
+        );
+      }
+      
+      // Obter informações do desafio
+      final challenge = await getChallengeById(challengeId);
+      
+      // Verificar se o desafio está ativo
+      if (!challenge.active) {
+        return CheckInResult(
+          success: false,
+          pointsAwarded: 0,
+          message: 'Este desafio não está mais ativo',
+        );
+      }
+      
+      // Verificar se está dentro do período do desafio
+      final now = DateTime.now();
+      if (now.isBefore(challenge.startDate) || now.isAfter(challenge.endDate)) {
+        return CheckInResult(
+          success: false,
+          pointsAwarded: 0,
+          message: 'Fora do período do desafio',
+        );
+      }
+      
+      // Criar o check-in
+      final checkInData = {
+        'challenge_id': challengeId,
+        'user_id': userId,
+        'check_in_date': date.toIso8601String().split('T')[0], // Apenas a data
+        'workout_id': workoutId,
+        'workout_name': workoutName,
+        'workout_type': workoutType,
+        'duration_minutes': durationMinutes,
+        'created_at': now.toIso8601String(),
+      };
+      
+      await _client
+          .from(_challengeCheckInsTable)
+          .insert(checkInData);
+      
+      // Atualizar o progresso do usuário
+      // Verificamos se já existe um registro de progresso
+      final currentProgress = await getUserProgress(
+        challengeId: challengeId, 
+        userId: userId,
+      );
+      
+      // Pontos base do desafio
+      final basePoints = challenge.points;
+      
+      // Calcular o streak para bônus
+      final streak = await getCurrentStreak(userId, challengeId);
+      
+      // Calcular bônus de streak
+      int streakBonus = 0;
+      if (streak >= 30) {
+        streakBonus = 5;
+      } else if (streak >= 15) {
+        streakBonus = 3;
+      } else if (streak >= 7) {
+        streakBonus = 2;
+      } else if (streak >= 3) {
+        streakBonus = 1;
+      }
+      
+      final totalPoints = basePoints + streakBonus;
+      
+      if (currentProgress != null) {
+        // Atualizar o progresso existente
+        await _client
+            .from(_challengeProgressTable)
+            .update({
+              'points': currentProgress.points + totalPoints,
+              'total_check_ins': currentProgress.totalCheckIns + 1,
+              'consecutive_days': streak,
+              'last_check_in': now.toIso8601String(),
+              'updated_at': now.toIso8601String(),
+            })
+            .eq('challenge_id', challengeId)
+            .eq('user_id', userId);
+      } else {
+        // Obter informações do usuário
+        final userResponse = await _client
+            .from('profiles')
+            .select('name, photo_url')
+            .eq('id', userId)
+            .single();
+        
+        final userName = userResponse['name'] as String? ?? 'Usuário';
+        final userPhotoUrl = userResponse['photo_url'] as String?;
+        
+        // Criar novo progresso
+        await _client
+            .from(_challengeProgressTable)
+            .insert({
+              'challenge_id': challengeId,
+              'user_id': userId,
+              'points': totalPoints,
+              'total_check_ins': 1,
+              'consecutive_days': 1,
+              'last_check_in': now.toIso8601String(),
+              'created_at': now.toIso8601String(),
+              'updated_at': now.toIso8601String(),
+              'user_name': userName,
+              'user_photo_url': userPhotoUrl,
+            });
+      }
+      
+      // Atualizar o ranking
+      await _updateRankings(challengeId);
+      
+      String message = 'Check-in realizado com sucesso';
+      if (streakBonus > 0) {
+        message += ' (+ $streakBonus pontos de bônus por $streak dias consecutivos)';
+      }
+      
+      return CheckInResult(
+        success: true,
+        pointsAwarded: totalPoints,
+        message: message,
+      );
+    } catch (e, stackTrace) {
+      debugPrint('Erro ao registrar check-in: $e');
+      return CheckInResult(
+        success: false,
+        pointsAwarded: 0,
+        message: 'Erro ao registrar check-in: ${e.toString()}',
+      );
+    }
+  }
+  
+  @override
+  Future<void> addBonusPoints(
+    String userId,
+    String challengeId,
+    int points,
+    String reason,
+    String userName,
+    String? userPhotoUrl,
+  ) async {
+    try {
+      // Registrar os pontos de bônus
+      await _client
+          .from(_challengeBonusesTable)
+          .insert({
+            'user_id': userId,
+            'challenge_id': challengeId,
+            'points': points,
+            'reason': reason,
+            'created_at': DateTime.now().toIso8601String(),
+          });
+      
+      // Obter o progresso atual do usuário
+      final currentProgress = await getUserProgress(
+        challengeId: challengeId,
+        userId: userId,
+      );
+      
+      if (currentProgress != null) {
+        // Atualizar o progresso existente
+        await _client
+            .from(_challengeProgressTable)
+            .update({
+              'points': currentProgress.points + points,
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .eq('challenge_id', challengeId)
+            .eq('user_id', userId);
+      } else {
+        // Criar novo progresso
+        await createUserProgress(
+          challengeId: challengeId,
+          userId: userId,
+          userName: userName,
+          userPhotoUrl: userPhotoUrl,
+          points: points,
+          completionPercentage: 0.0,
+        );
+      }
+      
+      // Atualizar o ranking
+      await _updateRankings(challengeId);
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao adicionar pontos de bônus');
+    }
+  }
+  
+  // Método auxiliar para atualizar rankings
+  Future<void> _updateRankings(String challengeId) async {
+    try {
+      // Obter todos os participantes ordenados por pontos
+      final response = await _client
+          .from(_challengeProgressTable)
+          .select()
+          .eq('challenge_id', challengeId)
+          .order('points', ascending: false);
+      
+      // Atualizar a posição de cada participante
+      for (int i = 0; i < response.length; i++) {
+        final participant = response[i];
+        final position = i + 1;
+        
+        await _client
+            .from(_challengeProgressTable)
+            .update({'position': position})
+            .eq('id', participant['id']);
+      }
+    } catch (e) {
+      debugPrint('Erro ao atualizar rankings: $e');
+    }
+  }
+  
+  @override
+  Future<Map<String, dynamic>> exportChallengeData(String challengeId) async {
+    try {
+      // Obter o desafio
+      final challenge = await getChallengeById(challengeId);
+      
+      // Obter progresso de todos os participantes
+      final progress = await getChallengeProgress(challengeId);
+      
+      // Obter grupos relacionados ao desafio
+      final groupsResponse = await _client
+          .from(_challengeGroupsTable)
+          .select()
+          .eq('challenge_id', challengeId)
+          .execute();
+          
+      final groups = groupsResponse.data.map<Map<String, dynamic>>((g) => g).toList();
+      
+      // Obter check-ins relacionados ao desafio
+      final checkInsResponse = await _client
+          .from(_challengeCheckInsTable)
+          .select()
+          .eq('challenge_id', challengeId)
+          .execute();
+          
+      final checkIns = checkInsResponse.data.map<Map<String, dynamic>>((c) => c).toList();
+      
+      // Criar estrutura de dados para exportação
+      return {
+        'challenge': challenge.toJson(),
+        'progress': progress.map((p) => p.toJson()).toList(),
+        'groups': groups,
+        'check_ins': checkIns,
+        'exported_at': DateTime.now().toIso8601String(),
+      };
+    } catch (e, stackTrace) {
+      throw _handleError(e, stackTrace, 'Erro ao exportar dados do desafio');
+    }
+  }
+  
+  @override
+  Future<bool> enableNotifications(String challengeId, bool enable) async {
+    try {
+      // Verificar se o usuário está autenticado
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) {
+        return false;
+      }
+      
+      // Atualizar a preferência de notificações do usuário para este desafio
+      await _client
+          .from('user_notification_preferences')
+          .upsert({
+            'user_id': userId,
+            'challenge_id': challengeId,
+            'notifications_enabled': enable,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('user_id', userId)
+          .eq('challenge_id', challengeId);
+      
+      return true;
+    } catch (e) {
+      debugPrint('Erro ao configurar notificações: $e');
+      return false;
+    }
+  }
+  
+  // Método para tratamento padronizado de erros
+  AppException _handleError(dynamic error, StackTrace stackTrace, String defaultMessage) {
+    if (error is AppException) {
+      return error;
+    }
+    
+    if (error is PostgrestException) {
+      return AppStorageException(
+        message: error.message ?? defaultMessage,
+        code: error.code,
+        originalError: error,
+        stackTrace: stackTrace,
+      );
+    }
+    
+    return AppException(
+      message: defaultMessage,
+      originalError: error,
+      stackTrace: stackTrace,
+    );
+  }
+}
+
+/// Classe para retornar o resultado do check-in
+class CheckInResult {
+  final bool success;
+  final int pointsAwarded;
+  final String message;
+  
+  CheckInResult({
+    required this.success,
+    required this.pointsAwarded,
+    required this.message,
+  });
+} 

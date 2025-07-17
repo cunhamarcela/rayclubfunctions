@@ -1,0 +1,16 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+- Sempre siga rigorosamente o padrão MVVM com Riverpod
+- Nunca use setState(), use exclusivamente ViewModels e Providers
+- Não gere código Firebase (apenas Supabase)
+- Toda requisição HTTP use Dio com tratamento de erros
+- Sempre valide variáveis de ambiente pelo .env (não coloque chaves hard-coded)
+- Sempre que criar uma nova tela, gere automaticamente testes básicos para ela
+- Gere documentação mínima (docstrings) para métodos e funções importantes
+- Evite repetição de código. Reutilize widgets e métodos sempre que possível
+- Não use force-unwrap (!) em variáveis opcionais. Sempre trate nulls explicitamente

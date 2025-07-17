@@ -1,0 +1,12 @@
+<key>UIBackgroundModes</key>
+<array>
+	<string>fetch</string>
+	<string>processing</string>
+	<string>remote-notification</string>
+</array>
+<key>BGTaskSchedulerPermittedIdentifiers</key>
+<array>
+	<string>com.rayclub.app.refresh</string>
+	<string>com.rayclub.app.processing</string>
+	<string>com.rayclub.app.sync</string>
+</array> 

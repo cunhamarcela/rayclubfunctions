@@ -1,0 +1,125 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:ray_club_app/models/nutrition_item.dart';
+import 'package:ray_club_app/repositories/nutrition_repository.dart';
+import 'package:ray_club_app/core/providers/providers.dart';
+
+part 'nutrition_view_model.freezed.dart';
+
+/// Estado para o view model de nutrição
+@freezed
+class NutritionState with _$NutritionState {
+  const factory NutritionState({
+    @Default([]) List<NutritionItem> nutritionItems,
+    @Default([]) List<NutritionItem> filteredItems,
+    @Default('') String selectedCategory,
+    @Default(false) bool isLoading,
+    String? errorMessage,
+    NutritionItem? selectedItem,
+  }) = _NutritionState;
+}
+
+/// Provider para o view model de nutrição
+final nutritionViewModelProvider = StateNotifierProvider<NutritionViewModel, NutritionState>((ref) {
+  final repository = ref.watch(nutritionRepositoryProvider);
+  return NutritionViewModel(repository);
+});
+
+/// ViewModel para gerenciamento de itens de nutrição
+class NutritionViewModel extends StateNotifier<NutritionState> {
+  final NutritionRepository _repository;
+
+  NutritionViewModel(this._repository) : super(const NutritionState()) {
+    loadNutritionItems();
+  }
+
+  /// Carrega todos os itens de nutrição
+  Future<void> loadNutritionItems() async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      final items = await _repository.getNutritionItems();
+      state = state.copyWith(
+        nutritionItems: items,
+        filteredItems: items,
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Falha ao carregar itens de nutrição: ${e.toString()}'
+      );
+    }
+  }
+
+  /// Filtra itens por categoria
+  void filterByCategory(String category) {
+    if (category.isEmpty) {
+      state = state.copyWith(
+        selectedCategory: '',
+        filteredItems: state.nutritionItems,
+      );
+      return;
+    }
+
+    final filtered = state.nutritionItems.where((item) => 
+      item.category.toLowerCase() == category.toLowerCase()
+    ).toList();
+
+    state = state.copyWith(
+      selectedCategory: category,
+      filteredItems: filtered,
+    );
+  }
+
+  /// Filtra receitas por autor (nutri ou ray)
+  void filterRecipesByAuthor(String author) {
+    final filtered = state.nutritionItems.where((item) => 
+      item.category.toLowerCase() == 'recipe' && 
+      item.author.toLowerCase() == author.toLowerCase()
+    ).toList();
+    
+    state = state.copyWith(
+      selectedCategory: 'recipe',
+      filteredItems: filtered,
+    );
+  }
+
+  /// Carrega itens destacados
+  Future<void> loadFeaturedItems() async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      final items = await _repository.getFeaturedNutritionItems();
+      state = state.copyWith(
+        filteredItems: items,
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Falha ao carregar itens destacados: ${e.toString()}'
+      );
+    }
+  }
+
+  /// Seleciona um item para exibir detalhes
+  Future<void> selectItemById(String id) async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      final item = await _repository.getNutritionItemById(id);
+      state = state.copyWith(
+        selectedItem: item,
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Falha ao carregar detalhes do item: ${e.toString()}'
+      );
+    }
+  }
+
+  /// Limpa o item selecionado
+  void clearSelectedItem() {
+    state = state.copyWith(selectedItem: null);
+  }
+} 

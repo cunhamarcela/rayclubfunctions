@@ -1,0 +1,42 @@
+// Flutter imports:
+import 'package:flutter/material.dart';
+
+// Project imports:
+import '../../core/theme/app_colors.dart';
+
+/// Widget para exibir indicadores de carregamento em toda a aplicação
+class LoadingView extends StatelessWidget {
+  /// Mensagem opcional para exibir abaixo do indicador de carregamento
+  final String? message;
+  
+  /// Construtor que aceita uma mensagem opcional
+  const LoadingView({
+    this.message,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+          ),
+          if (message != null) ...[
+            const SizedBox(height: 16),
+            Text(
+              message!,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.black54,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}

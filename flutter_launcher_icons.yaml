@@ -1,0 +1,8 @@
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logos/app/check.png"
+  adaptive_icon_background: "#FFFFFF" # Fundo branco para o ícone adaptativo
+  adaptive_icon_foreground: "assets/images/logos/app/check.png"
+  remove_alpha_ios: true
+  min_sdk_android: 21 

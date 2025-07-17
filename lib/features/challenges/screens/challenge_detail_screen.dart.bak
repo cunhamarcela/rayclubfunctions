@@ -1,0 +1,986 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:auto_route/auto_route.dart'; // Import for navigation
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../../core/router/app_router.dart'; // Import router
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_textures.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/loading_indicator.dart';
+import '../../auth/viewmodels/auth_view_model.dart';
+import '../models/challenge.dart';
+import '../models/challenge_group.dart'; // Import ChallengeGroup
+import '../models/challenge_state.dart'; // Import ChallengeState
+import '../models/challenge_progress.dart'; // Adicione esta importação
+import '../services/challenge_image_service.dart';
+import '../viewmodels/challenge_view_model.dart'; // Use ViewModel e providers
+import '../viewmodels/challenge_group_view_model.dart'; // Use Group ViewModel
+import '../widgets/challenge_leaderboard.dart';
+import '../widgets/challenge_progress_card.dart';
+import '../widgets/retry_ranking_button.dart';
+import '../repositories/challenge_repository.dart'; // Importação do ChallengeRepository
+import '../providers/challenge_providers.dart'; // Importação para challenge_providers
+import '../screens/challenge_ranking_screen.dart'; // Importando a tela de ranking completa
+import '../screens/challenge_workouts_screen.dart';
+import '../../../shared/bottom_navigation_bar.dart';
+import '../../../features/home/widgets/register_exercise_sheet.dart'; // Import for showRegisterExerciseSheet
+
+// Adicionando o provider para o usuário atual usando o Supabase diretamente
+final currentUserProvider = FutureProvider<supabase.User?>((ref) async {
+  try {
+    return Supabase.instance.client.auth.currentUser;
+  } catch (e) {
+    debugPrint('Erro ao obter usuário atual: $e');
+    return null;
+  }
+});
+
+// Provider for the user's groups (needed for filtering)
+final userGroupsProvider = FutureProvider.family<List<ChallengeGroup>, String?>((ref, userId) async {
+  if (userId == null) return [];
+  
+  // Usando o challengeGroupViewModel que tem o groups
+  final groupState = ref.read(challengeGroupViewModelProvider);
+  
+  // Se já temos grupos carregados, retorne-os imediatamente
+  if (groupState.groups.isNotEmpty) {
+    return groupState.groups;
+  }
+  
+  // Se ainda não temos grupos, carregue-os em um postFrameCallback para evitar modificar 
+  // o estado durante a construção
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    ref.read(challengeGroupViewModelProvider.notifier).loadUserGroups();
+  });
+  
+  // Retorne uma lista vazia enquanto carrega
+  return [];
+});
+
+@RoutePage()
+class ChallengeDetailScreen extends ConsumerStatefulWidget {
+  final String challengeId;
+
+  const ChallengeDetailScreen({
+    @PathParam('challengeId') required this.challengeId, // Use annotation for router
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  ConsumerState<ChallengeDetailScreen> createState() => _ChallengeDetailScreenState();
+}
+
+class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen> {
+
+  @override
+  void initState() {
+    super.initState();
+    // Initial load of the challenge details when the screen is first built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('🔍 ChallengeDetailScreen - postFrameCallback para id: ${widget.challengeId}');
+      ref.read(challengeViewModelProvider.notifier).loadChallengeDetails(widget.challengeId);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Watch the main challenge view model state
+    final challengeState = ref.watch(challengeViewModelProvider);
+    final challenge = challengeState.selectedChallenge;
+    final userId = ref.watch(currentUserProvider).value?.id;
+    final imageService = ref.watch(challengeImageServiceProvider);
+    final userGroupsAsync = ref.watch(userGroupsProvider(userId));
+    
+    // Definir userProgress e isActive aqui para que estejam disponíveis no bottomSheet
+    final now = DateTime.now();
+    final isActive = challenge?.endDate.isAfter(now) ?? false;
+    final userProgress = challengeState.userProgress;
+
+    // Diagnóstico
+    debugPrint('🔍 ChallengeDetailScreen - build chamado');
+    debugPrint('🔍 ChallengeDetailScreen - challengeId: ${widget.challengeId}');
+    debugPrint('🔍 ChallengeDetailScreen - challenge carregado: ${challenge?.title}');
+    debugPrint('🔍 ChallengeDetailScreen - isLoading: ${challengeState.isLoading}');
+    debugPrint('🔍 ChallengeDetailScreen - progresso: ${challengeState.progressList.length} participantes');
+    debugPrint('🔍 ChallengeDetailScreen - filtro: ${challengeState.selectedGroupIdForFilter}');
+    debugPrint('🔍 ChallengeDetailScreen - userId: $userId');
+
+    // Handle loading and error states for the main challenge data
+    if (challengeState.isLoading && challenge == null) {
+      debugPrint('🔍 ChallengeDetailScreen - exibindo loading...');
+      return const Scaffold(body: LoadingIndicator());
+    }
+
+    if (challenge == null) {
+      debugPrint('❌ ChallengeDetailScreen - challenge não encontrado ou com erro');
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'TESTE MODIFICAÇÃO - Desafio',
+            style: AppTypography.headingMedium.copyWith(
+              color: AppColors.textDark,
+            ),
+          ),
+        ),
+        body: EmptyState(
+          message: challengeState.errorMessage ?? 'Desafio não encontrado ou erro ao carregar.',
+          icon: Icons.error_outline,
+          actionLabel: 'Voltar',
+          onAction: () => context.router.back(),
+        ),
+      );
+    }
+
+    // Now build the main content using the loaded challenge data
+    return Scaffold(
+      body: Stack(
+        children: [
+          _buildContent(context, ref, challengeState, userId, imageService, userGroupsAsync.value ?? [], userProgress),
+          
+          // BOTÃO "VER HISTÓRICO DE TREINOS" - POSIÇÃO FIXA E SEMPRE CLICÁVEL
+          Positioned(
+            bottom: 100, // Acima do bottomNavigationBar
+            left: 16,
+            right: 16,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  print('✅ BOTÃO HISTÓRICO: Navegando para WorkoutHistoryRoute');
+                  try {
+                    Navigator.of(context).pushNamed('/workouts/history');
+                    print('✅ Navegação com Navigator.pushNamed sucedeu');
+                  } catch (e) {
+                    print('❌ Erro com Navigator.pushNamed: $e');
+                    try {
+                      context.pushRoute(const WorkoutHistoryRoute());
+                      print('✅ Navegação com context.pushRoute sucedeu');
+                    } catch (e2) {
+                      print('❌ Erro com context.pushRoute: $e2');
+                    }
+                  }
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.orange,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.orange.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.history, color: Colors.white, size: 20),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Ver Histórico de Treinos',
+                        style: TextStyle(
+                          fontFamily: 'Century Gothic',
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: const SharedBottomNavigationBar(currentIndex: 4),
+      bottomSheet: challenge != null && userProgress == null && isActive ? 
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: ElevatedButton(
+            onPressed: () => _joinChallenge(context, challenge.id),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'Participar',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ) : null,
+      floatingActionButton: (challenge != null && challenge.isActive()) 
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                // Abrir o formulário de registro de exercício passando o ID do desafio
+                showRegisterExerciseSheet(context, challengeId: challenge.id);
+              },
+              backgroundColor: AppColors.orange,
+              foregroundColor: Colors.white,
+              label: Text(
+                'Registrar Treino',
+                style: TextStyle(
+                  fontFamily: 'Century Gothic',
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
+              ),
+              icon: const Icon(Icons.add_task),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    WidgetRef ref,
+    ChallengeState challengeState,
+    String? userId,
+    ChallengeImageService imageService,
+    List<ChallengeGroup> userGroups,
+    ChallengeProgress? userProgress,
+  ) {
+    // Garantimos que selectedChallenge não será nulo, pois este método
+    // só é chamado após verificarmos isso na build
+    final challenge = challengeState.selectedChallenge;
+    if (challenge == null) {
+      // Como precaução adicional, mostramos um widget vazio caso challenge seja nulo
+      return const SizedBox.shrink();
+    }
+    
+    final dateFormat = DateFormat('dd/MM/yyyy');
+    final now = DateTime.now();
+    final isActive = challenge.endDate.isAfter(now);
+    final rankingList = challengeState.progressList;
+    final daysLeft = isActive ? challenge.endDate.difference(DateTime(now.year, now.month, now.day)).inDays + 1 : 0;
+    final selectedGroupId = challengeState.selectedGroupIdForFilter;
+
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          expandedHeight: 180,
+          pinned: true,
+          backgroundColor: Colors.white,
+          iconTheme: const IconThemeData(color: AppColors.textDark),
+          flexibleSpace: FlexibleSpaceBar(
+            background: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
+                  'assets/images/logos/app/headerdesafio.png',
+                  fit: BoxFit.cover,
+                ),
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
+                        colors: [
+                          AppColors.orange.withOpacity(0.8),
+                          AppColors.purple.withOpacity(0.8),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // Status Badge (Active/Ended)
+                Positioned(
+                  top: 70,
+                  right: 16,
+                  child: _buildStatusBadge(isActive, daysLeft),
+                ),
+                // Título agora está posicionado mais baixo, sem a tag Oficial
+                Positioned(
+                  bottom: 25,
+                  left: 16,
+                  right: 16,
+                  child: Text(
+                    challenge.title,
+                    style: TextStyle(
+                      fontFamily: 'Century Gothic',
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            titlePadding: EdgeInsets.zero,
+            centerTitle: false,
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: AppTextures.addWaveTexture(
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // User Progress Card (if logged in and progress exists)
+                  if (userId != null && userProgress != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Seu Progresso',
+                                style: TextStyle(
+                                  fontFamily: 'Century Gothic',
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.darkGray,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.lightGray,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${(userProgress.completionPercentage).toInt()}%',
+                                  style: TextStyle(
+                                    fontFamily: 'Century Gothic',
+                                    fontSize: 14,
+                                    color: AppColors.darkGray,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: LinearProgressIndicator(
+                                    value: userProgress.completionPercentage / 100,
+                                    minHeight: 6,
+                                    backgroundColor: AppColors.lightGray,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      AppColors.purple,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                '${(userProgress.completionPercentage).toInt()}%',
+                                style: TextStyle(
+                                  fontFamily: 'Century Gothic',
+                                  fontSize: 14,
+                                  color: AppColors.darkGray,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline,
+                                size: 14,
+                                color: AppColors.purple,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Faça check-ins para aumentar seu progresso',
+                                  style: TextStyle(
+                                    fontFamily: 'Century Gothic',
+                                    fontSize: 14,
+                                    color: AppColors.darkGray,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Status badge
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.lightGray,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isActive ? Icons.directions_run : Icons.flag,
+                                      size: 16,
+                                      color: AppColors.darkGray,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      isActive ? 'Em Andamento' : 'Encerrado',
+                                      style: TextStyle(
+                                        fontFamily: 'Century Gothic',
+                                        fontSize: 12,
+                                        color: AppColors.darkGray,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // Ranking Section
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Título do Ranking
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Ranking',
+                              style: AppTypography.headingSmall.copyWith(
+                                color: AppColors.textDark,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (userGroups.isNotEmpty) ...[
+                              _buildFilterButtons(context, selectedGroupId, userGroups, ref.read(challengeViewModelProvider.notifier).filterRankingByGroup),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Loading indicator for ranking while filtering/loading
+                        if (challengeState.isLoading && rankingList.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16.0),
+                            child: LoadingIndicator(size: 24),
+                          )
+                        // Error state with retry button
+                        else if (challengeState.errorMessage?.contains("ranking") ?? false)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16.0),
+                            child: RetryRankingButton(
+                              challengeId: challenge.id,
+                              groupId: selectedGroupId,
+                              errorMessage: challengeState.errorMessage,
+                              onAfterRetry: () {
+                                // Opcional: mostrar snackbar ou fazer algo após tentar novamente
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Tentando reconectar ao ranking em tempo real...'),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        // Leaderboard display
+                        else
+                          ChallengeLeaderboard(
+                            challengeId: challenge.id,
+                            groupId: selectedGroupId,
+                            rankingList: rankingList,
+                            userId: userId,
+                            maxEntriesToShow: 10,
+                          ),
+
+                        // "View Full Ranking" button
+                        if (rankingList.isNotEmpty && rankingList.length > 10)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16.0),
+                            child: Center(
+                              child: TextButton.icon(
+                                onPressed: () => _navigateToFullRanking(context, challenge.id),
+                                icon: const Icon(Icons.leaderboard),
+                                label: const Text('Ver Ranking Completo'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.primary,
+                                  textStyle: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        
+                        const SizedBox(height: 24),
+
+                        // Description section
+                        Text(
+                          'Descrição',
+                          style: AppTypography.headingSmall.copyWith(
+                            color: AppColors.textDark,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          challenge.description,
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 24),
+
+                        // Period section
+                        Text(
+                          'Período',
+                          style: AppTypography.headingSmall.copyWith(
+                            color: AppColors.textDark,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.calendar_today, size: 16, color: AppColors.textDark),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${dateFormat.format(challenge.startDate)} - ${dateFormat.format(challenge.endDate)}',
+                              style: AppTypography.bodyMedium.copyWith(
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (isActive) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.timer, size: 16, color: AppColors.primary),
+                              const SizedBox(width: 8),
+                              Text(
+                                '$daysLeft ${daysLeft == 1 ? 'dia' : 'dias'} restantes',
+                                style: AppTypography.bodyMedium.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        
+                        // Button to leave challenge if user is participating
+                        if (userProgress != null && isActive) ...[
+                          const SizedBox(height: 32),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () => _showLeaveConfirmation(context, challenge.id),
+                              icon: const Icon(Icons.exit_to_app),
+                              label: const Text('Deixar Desafio'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade700,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
+                          ),
+                        ],
+                        
+                        // Button to join challenge if user is not participating and challenge is active
+                        if (userProgress == null && isActive && userId != null) ...[
+                          const SizedBox(height: 32),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () => _joinChallenge(context, challenge.id),
+                              icon: const Icon(Icons.add),
+                              label: const Text('Participar do Desafio'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.success,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
+                          ),
+                        ],
+                        
+                        // Botão para login se usuário não estiver autenticado
+                        if (userId == null) ...[
+                          const SizedBox(height: 32),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Você precisa estar logado para participar'),
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                );
+                                // Redirecionar para login
+                                context.router.pushNamed(AppRoutes.login);
+                              },
+                              icon: const Icon(Icons.login),
+                              label: const Text('Entrar para Participar'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper Widget for Status Badge
+  Widget _buildStatusBadge(bool isActive, int daysLeft) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: isActive ? AppColors.pastelYellow : AppColors.orangeDark,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isActive ? Icons.timer : Icons.timer_off,
+            size: 16,
+            color: AppColors.darkGray,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isActive ? '$daysLeft dias' : 'Encerrado',
+            style: TextStyle(
+              fontFamily: 'Century Gothic',
+              fontSize: 14,
+              color: AppColors.darkGray,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper Widget for Group Filter Dropdown
+  Widget _buildFilterButtons(
+    BuildContext context,
+    String? selectedGroupId,
+    List<ChallengeGroup> userGroups,
+    Function(String?) onFilterChanged,
+  ) {
+    return SizedBox(
+      height: 42,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          // Botão "Todos"
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: Text(
+                'Todos',
+                style: TextStyle(
+                  fontFamily: 'Century Gothic',
+                  color: selectedGroupId == null ? Colors.white : AppColors.darkGray,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              selected: selectedGroupId == null,
+              backgroundColor: AppColors.backgroundLight,
+              selectedColor: AppColors.orange,
+              checkmarkColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                  color: selectedGroupId == null ? AppColors.orange : AppColors.lightGray,
+                  width: 1,
+                ),
+              ),
+              onSelected: (_) => onFilterChanged(null),
+            ),
+          ),
+          
+          // Botões de filtro para cada grupo
+          ...userGroups.map((group) {
+            final isSelected = selectedGroupId == group.id;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                label: Text(
+                  group.name,
+                  style: TextStyle(
+                    fontFamily: 'Century Gothic',
+                    color: isSelected ? Colors.white : AppColors.darkGray,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                selected: isSelected,
+                backgroundColor: AppColors.backgroundLight,
+                selectedColor: AppColors.purple,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(
+                    color: isSelected ? AppColors.purple : AppColors.lightGray,
+                    width: 1,
+                  ),
+                ),
+                onSelected: (_) => onFilterChanged(group.id),
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  // Método completamente reescrito para navegação direta
+  void _navigateToFullRanking(BuildContext context, String? challengeId) {
+    if (challengeId == null || challengeId.isEmpty) {
+      print('❌ DIAGNÓSTICO: Tentativa de navegar para ranking com challengeId nulo ou vazio');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro: Identificador do desafio não encontrado'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    print('🔍 DIAGNÓSTICO: Tentando navegar para ranking completo do desafio $challengeId');
+    
+    try {
+      // Navegar usando AutoRoute (sistema de navegação correto do app)
+      print('🔍 DIAGNÓSTICO: Tentando método de navegação com AutoRoute');
+      context.router.pushNamed('/challenges/ranking/$challengeId');
+    } catch (e, stackTrace) {
+      print('❌ DIAGNÓSTICO: Exceção ao tentar navegar para ranking completo: $e');
+      print('❌ DIAGNÓSTICO: Stack trace: $stackTrace');
+      
+      // Fallback para o método anterior se o Auto Route falhar
+      try {
+        print('🔍 DIAGNÓSTICO: Tentando método de navegação de fallback - MaterialPageRoute direto');
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ChallengeRankingScreen(challengeId: challengeId),
+          ),
+        );
+      } catch (e2) {
+        print('❌ DIAGNÓSTICO: Erro também no método de fallback: $e2');
+      }
+    }
+  }
+
+  // Método para confirmar saída do desafio
+  void _showLeaveConfirmation(BuildContext context, String challengeId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Deixar desafio'),
+          content: const Text('Tem certeza que deseja deixar este desafio? Seu progresso será perdido.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Implementar a lógica para deixar o desafio aqui
+                final userId = ref.read(currentUserProvider).value?.id;
+                if (userId != null) {
+                  ref.read(challengeViewModelProvider.notifier).leaveChallenge(
+                    challengeId: challengeId,
+                    userId: userId,
+                  );
+                }
+              },
+              child: const Text('Confirmar', style: TextStyle(color: AppColors.orangeDark)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  // Método para participar do desafio
+  void _joinChallenge(BuildContext context, String challengeId) {
+    final userId = ref.read(currentUserProvider).value?.id;
+    
+    if (userId != null) {
+      // Mostrar indicador de progresso
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+      
+      // PATCH: Corrigir bug 6 - Implementar a função de participar do desafio
+      ref.read(challengeViewModelProvider.notifier).joinChallenge(
+        challengeId: challengeId,
+        userId: userId,
+      ).then((_) {
+        // Fechar o diálogo de progresso
+        Navigator.of(context).pop();
+        
+        // Mostrar mensagem de sucesso
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Você entrou no desafio com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Força recarregamento de dados completo
+        Future.delayed(const Duration(milliseconds: 300), () {
+          // Navegar novamente para a tela de detalhes para garantir atualização completa
+          context.router.pushNamed(AppRoutes.challengeDetail(challengeId));
+        });
+      }).catchError((e) {
+        // Fechar o diálogo de progresso
+        Navigator.of(context).pop();
+        
+        // Mostrar mensagem de erro
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao entrar no desafio: $e'),
+            backgroundColor: AppColors.orangeDark,
+          ),
+        );
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Você precisa estar logado para participar do desafio'),
+          backgroundColor: AppColors.orangeDark,
+        ),
+      );
+    }
+  }
+
+  // Método para navegação para a tela de treinos do desafio
+  void _navigateToChallengeWorkouts(BuildContext context, String? challengeId) {
+    if (challengeId == null || challengeId.isEmpty) {
+      print('❌ DIAGNÓSTICO: Tentativa de navegar para treinos com challengeId nulo ou vazio');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro: Identificador do desafio não encontrado'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    print('🔍 DIAGNÓSTICO: Tentando navegar para workouts do desafio $challengeId');
+    
+    try {
+      // Primeiro método: navegação via AutoRoute com path nomeado
+      context.pushRoute(ChallengeWorkoutsRoute(challengeId: challengeId));
+    } catch (e) {
+      print('⚠️ DIAGNÓSTICO: Falha no primeiro método de navegação: $e');
+      
+      try {
+        // Segundo método: navegação via path string
+        context.router.pushNamed('/challenges/workouts/$challengeId');
+      } catch (e2, stackTrace) {
+        print('❌ DIAGNÓSTICO: Exceção ao tentar navegar para workouts: $e2');
+        print('❌ DIAGNÓSTICO: Stack trace: $stackTrace');
+        
+        // Método de fallback: navegação direta
+        try {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => ChallengeWorkoutsScreen(challengeId: challengeId),
+            ),
+          );
+        } catch (e3) {
+          print('❌ DIAGNÓSTICO: Todos os métodos de navegação falharam: $e3');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao abrir detalhes dos treinos. Tente novamente.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+}

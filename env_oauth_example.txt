@@ -1,0 +1,16 @@
+# Configurações do YouTube Data API
+YOUTUBE_API_KEY=AIzaSyB7ABH_EMd3kg2DGRh3SXMJaKBSNsotPNs
+
+# Configurações OAuth para acessar vídeos privados (Como manager do canal)
+# Para obter essas credenciais:
+# 1. Acesse: https://console.developers.google.com/
+# 2. Crie um projeto ou selecione um existente  
+# 3. Habilite a YouTube Data API v3
+# 4. Crie credenciais OAuth 2.0 para aplicação desktop
+# 5. Cole o Client ID e Client Secret abaixo
+GOOGLE_OAUTH_CLIENT_ID=SEU_CLIENT_ID_AQUI
+GOOGLE_OAUTH_CLIENT_SECRET=SEU_CLIENT_SECRET_AQUI
+
+# Configurações do Supabase
+SUPABASE_URL=https://ggrjepkyhwlfbhyqrzgg.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdncmplcGt5aHdsZmJoeXFyemdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ1MzAzNzksImV4cCI6MjA1MDEwNjM3OX0.j8u5cQOdKHiafkzC1lgOK3PpGUQEYRtAM8StyQqLNzw 

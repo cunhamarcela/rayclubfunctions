@@ -1,0 +1,212 @@
+name: ray_club_app
+description: A new Flutter project.
+publish_to: 'none'
+version: 1.0.24+33
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  sentry_flutter: ^8.14.1
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Supabase (base de dados)
+  supabase_flutter: ^2.5.6
+  supabase: ^2.2.2
+  postgrest: ^2.1.1
+  realtime_client: ^2.0.2
+  
+  # Storage
+  path: ^1.9.0
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  hooks_riverpod: ^2.6.1
+  riverpod_annotation: ^2.3.3
+  flutter_hooks: ^0.20.5
+
+  # UI e Estilo
+  cupertino_icons: ^1.0.2
+  flutter_svg: ^2.0.9
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+  google_fonts: ^6.1.0
+  intl: ^0.19.0
+  qr_flutter: ^4.1.0
+  smooth_page_indicator: ^1.1.0
+  markdown_widget: ^2.3.2+6
+
+  # Utilitários
+  shared_preferences: ^2.2.2
+  url_launcher: ^6.2.2
+  image_picker: ^1.1.2
+  google_sign_in: ^6.2.1
+  sign_in_with_apple: ^6.1.1
+  connectivity_plus: ^6.1.3
+  path_provider: ^2.1.1
+  logger: ^2.0.2+1
+  package_info_plus: ^4.1.0
+
+  # Navegação e Rotas
+  auto_route: ^9.3.0+1
+  provider: ^6.1.1
+
+  # HTTP e Utilidades
+  http: ^1.2.1
+  uuid: ^4.5.1
+  flutter_staggered_grid_view: ^0.7.0
+  flutter_cache_manager: ^3.3.1
+  flutter_image_compress: ^2.1.0
+  carousel_slider: ^5.0.0
+  table_calendar: ^3.1.3
+
+  # Segurança e Networking
+  flutter_secure_storage: ^10.0.0-beta.4
+  dio: ^5.4.3
+  permission_handler: ^11.3.0
+  device_info_plus: ^11.3.3
+  flutter_local_notifications: ^19.0.0
+  get_it: ^8.0.3
+  share_plus: ^10.1.4
+  video_player: ^2.8.3
+  fl_chart: ^0.70.2
+  youtube_player_flutter: ^9.0.0
+
+  # Persistência de Dados (Hive)
+  hive_flutter: ^1.1.0
+  hive: ^2.2.3
+  
+  # Assets e Animações
+  flutter_dotenv: ^5.1.0
+
+  # Tracking
+  app_tracking_transparency: ^2.0.4
+  
+  # Serialização e Models
+  json_annotation: ^4.9.0
+  freezed_annotation: ^2.4.4
+  
+  # Deep Linking
+  app_links: ^6.3.2
+  yaml: ^3.1.3
+  animate_do: ^4.2.0
+  rxdart: ^0.28.0
+  percent_indicator: ^4.2.5
+  flutter_launcher_icons: ^0.14.3
+  webview_flutter: ^4.13.0
+
+dev_dependencies:
+  sentry_dart_plugin: ^2.4.1
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
+  # Testes e Mocking
+  mockito: ^5.4.3
+  mocktail: ^1.0.3
+  golden_toolkit: ^0.15.0
+
+  # Qualidade do Código
+  flutter_lints: ^5.0.0
+  hive_generator: ^2.0.1
+  riverpod_generator: ^2.3.9
+  
+  # Geração de Código
+  build_runner: ^2.4.7
+  freezed: ^2.4.6
+  json_serializable: ^6.7.1
+  
+  # App Icons & Splash
+  flutter_native_splash: ^2.3.1
+  flutter_gen_runner: ^5.4.0
+
+  # Auto Route Generator
+  auto_route_generator: ^9.0.0
+  import_sorter: ^4.6.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
+    - assets/
+    - assets/images/
+    - assets/images/workouts/
+    - assets/images/categories/
+    - assets/images/partners/
+    - assets/images/nutrition/
+    - assets/images/logos/
+    - assets/images/logos/app/
+    - assets/images/logos/app/IMG_2426.MOV
+    - assets/images/logos/partners/
+    - assets/images/logos/brands/
+    - assets/icons/
+    - assets/images/logos/social/
+    - assets/images/logos/backgrounds/
+    - assets/icons/
+    - assets/fonts/
+    - assets/videos/splash.mp4
+
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
+    - family: CenturyGothic
+      fonts:
+        - asset: assets/fonts/Century-Gothic.ttf
+        - asset: assets/fonts/Century-Gothic-Bold.TTF
+          weight: 700
+    - family: StingerTrial
+      fonts:
+        - asset: assets/fonts/StingerTrial-Regular.ttf
+        - asset: assets/fonts/StingerTrial-Thin.ttf
+          weight: 200
+    - family: StingerFitTrial
+      fonts:
+        - asset: assets/fonts/StingerFitTrial-Regular.ttf
+sentry:
+  upload_debug_symbols: true
+  upload_source_maps: true
+  project: flutter
+  org: ray-club
+
+# Configuração do Flutter Launcher Icons
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logos/app/check.png"
+  image_path_ios: "assets/images/logos/app/check.png"
+  adaptive_icon_background: "#F8F1E7" # Cor de fundo clara
+  adaptive_icon_foreground: "assets/images/logos/app/check.png"
+  remove_alpha_ios: true
+  web:
+    generate: false
+  windows:
+    generate: false
+  macos:
+    generate: false
+
+# Configuração do Flutter Native Splash
+flutter_native_splash:
+  color: "#F8F1E7"
+  image: "assets/images/logos/app/check.png"
+  color_dark: "#F8F1E7"
+  image_dark: "assets/images/logos/app/check.png"
+  android_12:
+    color: "#F8F1E7"
+    image: "assets/images/logos/app/check.png"
+    color_dark: "#F8F1E7"
+    image_dark: "assets/images/logos/app/check.png"
+  fullscreen: true
+  android_gravity: fill
+  ios_content_mode: scaleToFill
+  web_image_mode: cover

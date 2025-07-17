@@ -1,0 +1,20 @@
+Dear Apple App Review Team,
+
+We have successfully resolved the login/registration issues identified in our previous submission.
+
+ROOT CAUSE: The problem was caused by a missing parameter in a database function, which prevented new user registrations from completing and users from being properly authenticated.
+
+RESOLUTION: We have fixed the database function to include all required parameters. Both Apple Sign-In and Google Sign-In now work correctly for new users.
+
+TESTING: We have thoroughly tested the registration and login flows with new users to ensure the issue is completely resolved.
+
+VERSION: 1.0.15 (Build 24)
+
+We sincerely appreciate your patience and thorough review process. Your feedback was instrumental in helping us identify and resolve this critical issue.
+
+We eagerly await your response and the opportunity to have our app approved for distribution on the App Store.
+
+Thank you for your time and consideration.
+
+Best regards,
+Ray Club Development Team 

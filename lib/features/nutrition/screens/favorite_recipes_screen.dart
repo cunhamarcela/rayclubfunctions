@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../providers/recipe_favorites_providers.dart';
 import '../widgets/nutrition_card.dart';
+import '../models/nutrition_item.dart';
 
 /// Tela que exibe as receitas favoritas do usuário
 @RoutePage()
@@ -66,19 +67,26 @@ class FavoriteRecipesScreen extends ConsumerWidget {
         itemCount: recipes.length,
         itemBuilder: (context, index) {
           final recipe = recipes[index];
+          final nutritionItem = NutritionItem(
+            id: recipe.id,
+            title: recipe.title,
+            description: recipe.description,
+            category: recipe.category,
+            imageUrl: recipe.imageUrl,
+            preparationTimeMinutes: recipe.preparationTimeMinutes,
+            ingredients: recipe.ingredients,
+            instructions: recipe.instructions,
+            tags: recipe.tags,
+            nutritionistTip: recipe.nutritionistTip,
+          );
+          
           return Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: NutritionCard(
-              title: recipe.title,
-              description: recipe.description,
-              imageUrl: recipe.imageUrl,
-              preparationTime: recipe.preparationTimeMinutes,
-              calories: recipe.calories,
-              difficulty: recipe.difficulty,
-              category: recipe.category,
+              item: nutritionItem,
               onTap: () {
                 // Navegar para detalhes da receita
-                context.router.pushNamed('/recipes/${recipe.id}');
+                context.router.pushNamed('/nutrition/recipe/${recipe.id}');
               },
             ),
           );

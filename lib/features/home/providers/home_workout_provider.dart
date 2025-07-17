@@ -8,6 +8,49 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ray_club_app/features/workout/models/workout_video_model.dart';
 import 'package:ray_club_app/features/workout/repositories/workout_videos_repository.dart';
 
+/// Função auxiliar para ordenar treinos de musculação na ordem específica: A, B, C, D, E, F
+List<WorkoutVideo> _sortMusculacaoVideos(List<WorkoutVideo> videos) {
+  final ordenacao = ['treino a', 'treino b', 'treino c', 'treino d', 'treino e', 'treino f'];
+  
+  videos.sort((a, b) {
+    final tituloA = a.title.toLowerCase();
+    final tituloB = b.title.toLowerCase();
+    
+    int indexA = -1;
+    int indexB = -1;
+    
+    // Encontrar o índice do treino A
+    for (int i = 0; i < ordenacao.length; i++) {
+      if (tituloA.contains(ordenacao[i])) {
+        indexA = i;
+        break;
+      }
+    }
+    
+    // Encontrar o índice do treino B
+    for (int i = 0; i < ordenacao.length; i++) {
+      if (tituloB.contains(ordenacao[i])) {
+        indexB = i;
+        break;
+      }
+    }
+    
+    // Se ambos foram encontrados, ordenar pela ordem específica
+    if (indexA != -1 && indexB != -1) {
+      return indexA.compareTo(indexB);
+    }
+    
+    // Se apenas um foi encontrado, priorizar o encontrado
+    if (indexA != -1) return -1;
+    if (indexB != -1) return 1;
+    
+    // Se nenhum foi encontrado, usar ordem alfabética
+    return tituloA.compareTo(tituloB);
+  });
+  
+  return videos;
+}
+
 /// Modelo para representar um estúdio parceiro na home
 class HomePartnerStudio {
   final String id;
@@ -84,12 +127,15 @@ final homeWorkoutVideosProvider = FutureProvider<List<HomePartnerStudio>>((ref) 
       ).toList();
       
       if (treinosPrincipais.isNotEmpty) {
+        // ✨ NOVA: Aplicar ordenação específica A, B, C, D, E, F
+        final treinosOrdenados = _sortMusculacaoVideos(treinosPrincipais);
+        
         studios.add(
           HomePartnerStudio(
             id: 'musculacao',
             name: 'Treinos de Musculação',
             tagline: 'Treinos completos A-F com vídeos e PDFs',
-            videos: treinosPrincipais,
+            videos: treinosOrdenados,
             logoColor: const Color(0xFF27AE60),
             backgroundColor: const Color(0xFFE9F7EF),
             icon: Icons.fitness_center,

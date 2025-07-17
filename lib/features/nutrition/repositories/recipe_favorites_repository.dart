@@ -1,8 +1,8 @@
 // Package imports:
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide StorageException;
 
 // Project imports:
-import '../../../core/exceptions/app_exceptions.dart';
+import '../../../core/errors/app_exception.dart';
 import '../models/recipe.dart';
 
 /// Interface para o repositório de favoritos de receitas
@@ -39,7 +39,6 @@ class SupabaseRecipeFavoritesRepository implements RecipeFavoritesRepository {
     } catch (e) {
       throw StorageException(
         message: 'Erro ao adicionar receita aos favoritos',
-        originalError: e,
       );
     }
   }
@@ -55,7 +54,6 @@ class SupabaseRecipeFavoritesRepository implements RecipeFavoritesRepository {
     } catch (e) {
       throw StorageException(
         message: 'Erro ao remover receita dos favoritos',
-        originalError: e,
       );
     }
   }
@@ -103,7 +101,6 @@ class SupabaseRecipeFavoritesRepository implements RecipeFavoritesRepository {
     } catch (e) {
       throw StorageException(
         message: 'Erro ao buscar receitas favoritas',
-        originalError: e,
       );
     }
   }

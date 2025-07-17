@@ -35,7 +35,7 @@ class RecipeDetailScreen extends ConsumerWidget {
     });
     
     return recipeAsync.when(
-      data: (recipe) => _buildContent(context, recipe),
+      data: (recipe) => _buildContent(context, ref, recipe),
       loading: () => Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -77,7 +77,7 @@ class RecipeDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, Recipe recipe) {
+  Widget _buildContent(BuildContext context, WidgetRef ref, Recipe recipe) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 // Project imports:
-import 'package:ray_club_app/core/constants/app_colors.dart';
+import 'package:ray_club_app/core/theme/app_colors.dart';
 import 'package:ray_club_app/features/nutrition/models/nutrition_item.dart';
 
 /// Card para exibir um item de nutrição
@@ -68,7 +68,7 @@ class NutritionCard extends StatelessWidget {
               // Título
               Text(
                 item.title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textDark,
@@ -95,7 +95,7 @@ class NutritionCard extends StatelessWidget {
               // Tempo de preparo
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.access_time,
                     size: 16,
                     color: AppColors.primaryLight,
@@ -103,7 +103,7 @@ class NutritionCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     '${item.preparationTimeMinutes} min',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       color: AppColors.primaryLight,
                       fontWeight: FontWeight.w500,
@@ -237,7 +237,7 @@ class NutritionCard extends StatelessWidget {
                 vertical: 6,
               ),
               decoration: BoxDecoration(
-                color: item.author.toLowerCase() == 'nutri' 
+                color: item.nutritionistTip != null 
                     ? AppColors.info 
                     : AppColors.primary,
                 borderRadius: BorderRadius.circular(20),
@@ -246,7 +246,7 @@ class NutritionCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    item.author.toLowerCase() == 'nutri' 
+                    item.nutritionistTip != null 
                         ? Icons.health_and_safety 
                         : Icons.fitness_center,
                     color: Colors.white,
@@ -254,7 +254,7 @@ class NutritionCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    item.author.toLowerCase() == 'nutri' 
+                    item.nutritionistTip != null 
                         ? 'Nutri' 
                         : 'Ray',
                     style: const TextStyle(

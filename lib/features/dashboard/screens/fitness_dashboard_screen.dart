@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ray_club_app/features/dashboard/viewmodels/dashboard_fitness_view_model.dart';
 import 'package:ray_club_app/features/dashboard/widgets/fitness_calendar_widget.dart';
 import 'package:ray_club_app/features/dashboard/widgets/progress_cards_widget.dart';
+import 'package:ray_club_app/features/dashboard/widgets/enhanced_dashboard_widget.dart';
 import 'package:ray_club_app/core/widgets/app_bar_widget.dart';
 
 /// Tela principal do dashboard fitness com calendário e estatísticas
@@ -53,6 +54,9 @@ class _FitnessDashboardScreenState extends ConsumerState<FitnessDashboardScreen>
               
               // Cards de progresso
               const ProgressCardsWidget(),
+              
+              // Metas por categoria de treino
+              const EnhancedDashboardWidget(),
               
               // Espaço extra no final
               const SizedBox(height: 80),

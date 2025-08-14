@@ -878,7 +878,7 @@ class _CleanGoalsWidgetState extends ConsumerState<CleanGoalsWidget> {
                             onChanged: (value) {
                               setState(() {
                                 selectedType = value!;
-                                quantityController.text = '5'; // 5 dias = 150 min
+                                quantityController.text = '3'; // 3 dias = 90 min
                               });
                             },
                           ),
@@ -1054,7 +1054,7 @@ class _CleanGoalsWidgetState extends ConsumerState<CleanGoalsWidget> {
                             onChanged: (value) {
                               setState(() {
                                 selectedType = value!;
-                                quantityController.text = '5'; // 5 dias = 150 min
+                                quantityController.text = '3'; // 3 dias = 90 min
                               });
                             },
                           ),
@@ -1123,6 +1123,21 @@ class _CleanGoalsWidgetState extends ConsumerState<CleanGoalsWidget> {
       
       Navigator.pop(context); // Fechar modal
       
+      // SOLUÇÃO TEMPORÁRIA: Converter dias para minutos até backend ser atualizado
+      int goalMinutes;
+      if (type == 'dias') {
+        // Converter dias para minutos (30 min por dia)
+        goalMinutes = quantity * 30;
+        debugPrint('🔄 [CleanWidget] CONVERSÃO TEMPORÁRIA: $quantity dias → $goalMinutes minutos');
+      } else {
+        goalMinutes = quantity;
+      }
+      
+      // Validar limites do backend atual (15-1440 minutos)
+      if (goalMinutes < 15 || goalMinutes > 1440) {
+        throw Exception('Meta deve estar entre 15 e 1440 minutos (0.5 a 48 dias)');
+      }
+      
       // Mostrar loading
       showDialog(
         context: context,
@@ -1139,18 +1154,22 @@ class _CleanGoalsWidgetState extends ConsumerState<CleanGoalsWidget> {
         throw Exception('Usuário não logado');
       }
       
-      // Criar meta usando a nova função que suporta dias e minutos
+      // Usar função antiga até backend ser atualizado
       await supabase.rpc('set_category_goal', params: {
         'p_user_id': userId,
         'p_category': category,
-        'p_goal_value': quantity,
-        'p_goal_type': type,
+        'p_goal_minutes': goalMinutes, // Usar minutos convertidos
       });
       
       Navigator.pop(context); // Fechar loading
       
       // Mostrar sucesso
-      final successMessage = 'Meta de $category criada: $quantity $type! 🎉';
+      String successMessage;
+      if (type == 'dias') {
+        successMessage = 'Meta de $category criada: $quantity $type ($goalMinutes min)! 🎉';
+      } else {
+        successMessage = 'Meta de $category criada: $quantity $type! 🎉';
+      }
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

@@ -78,17 +78,34 @@ class _CleanGoalsWidgetState extends ConsumerState<CleanGoalsWidget> {
       
       final supabase = Supabase.instance.client;
       
-      // Usar a função SQL que sabemos que funciona
-      final response = await supabase.rpc('get_user_category_goals', params: {
-        'p_user_id': userId,
-      });
+      // Buscar metas diretamente da tabela incluindo goal_type
+      final response = await supabase
+          .from('workout_category_goals')
+          .select('*, goal_type')
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .gte('week_end_date', DateTime.now().toIso8601String().split('T')[0])
+          .order('created_at', ascending: false);
       
       debugPrint('🎯 [CleanWidget] Resposta: $response');
       debugPrint('🎯 [CleanWidget] Tipo: ${response.runtimeType}');
       
       if (response is List) {
         debugPrint('🎯 [CleanWidget] ${response.length} metas encontradas');
-        return List<Map<String, dynamic>>.from(response);
+        
+        // Adicionar cálculo de percentage_completed
+        final goalsWithPercentage = response.map((goal) {
+          final currentMinutes = goal['current_minutes'] ?? 0;
+          final goalMinutes = goal['goal_minutes'] ?? 1;
+          final percentage = (currentMinutes / goalMinutes * 100).clamp(0, 100);
+          
+          return {
+            ...goal,
+            'percentage_completed': percentage,
+          };
+        }).toList();
+        
+        return List<Map<String, dynamic>>.from(goalsWithPercentage);
       }
       
       return [];
@@ -152,6 +169,12 @@ class _CleanGoalsWidgetState extends ConsumerState<CleanGoalsWidget> {
     final percentage = goal['percentage_completed']?.toDouble() ?? 0.0;
     final completed = goal['completed'] == true;
     final goalId = goal['id']?.toString() ?? '';
+    final goalType = goal['goal_type']?.toString() ?? 'minutes';
+    
+    // Para metas de dias, calcular dias baseado em goalMinutes / 30
+    final isDaysGoal = goalType == 'days';
+    final goalDays = isDaysGoal ? (goalMinutes / 30).round() : 0;
+    final currentDays = isDaysGoal ? (currentMinutes / 30).round() : 0;
     
     return GestureDetector(
       onTap: () => _showGoalDetailsModal(context, goal),
@@ -171,16 +194,29 @@ class _CleanGoalsWidgetState extends ConsumerState<CleanGoalsWidget> {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    category.toUpperCase(),
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: completed ? Colors.green[700] : Colors.black87,
-                    ),
+                  child: Row(
+                    children: [
+                      Text(
+                        category.toUpperCase(),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: completed ? Colors.green[700] : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Ícone para indicar tipo de meta
+                      Icon(
+                        isDaysGoal ? Icons.calendar_today : Icons.timer,
+                        size: 16,
+                        color: isDaysGoal ? Colors.blue[600] : Colors.orange[600],
+                      ),
+                    ],
                   ),
                 ),
                 Text(
-                  '$currentMinutes/$goalMinutes min',
+                  isDaysGoal 
+                    ? '$currentDays/$goalDays dias'
+                    : '$currentMinutes/$goalMinutes min',
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 12,
@@ -199,16 +235,56 @@ class _CleanGoalsWidgetState extends ConsumerState<CleanGoalsWidget> {
               value: (percentage / 100).clamp(0.0, 1.0),
               backgroundColor: Colors.grey[300],
               valueColor: AlwaysStoppedAnimation<Color>(
-                completed ? Colors.green : Colors.orange,
+                completed ? Colors.green : (isDaysGoal ? Colors.blue : Colors.orange),
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              '${percentage.toInt()}% concluído • Toque para editar',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${percentage.toInt()}% concluído • Toque para ${isDaysGoal ? 'check-in' : 'editar'}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (isDaysGoal) ...[
+                  const SizedBox(width: 8),
+                  // Botão de check-in rápido para metas de dias
+                  GestureDetector(
+                    onTap: () => _toggleDailyCheckin(context, goal),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[100],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.check_circle_outline,
+                            size: 12,
+                            color: Colors.blue[700],
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            'Check',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Colors.blue[700],
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),
@@ -543,6 +619,13 @@ class _CleanGoalsWidgetState extends ConsumerState<CleanGoalsWidget> {
     final currentMinutes = goal['current_minutes'] ?? 0;
     final goalMinutes = goal['goal_minutes'] ?? 1;
     final completed = goal['completed'] == true;
+    final goalType = goal['goal_type']?.toString() ?? 'minutes';
+    final isDaysGoal = goalType == 'days';
+    
+    // Para metas de dias, calcular dias baseado em goalMinutes / 30
+    final goalDays = isDaysGoal ? (goalMinutes / 30).round() : 0;
+    final currentDays = isDaysGoal ? (currentMinutes / 30).round() : 0;
+    
     final TextEditingController minutesController = TextEditingController();
     
     return Container(
@@ -623,7 +706,9 @@ class _CleanGoalsWidgetState extends ConsumerState<CleanGoalsWidget> {
                         ),
                       ),
                       Text(
-                        '$currentMinutes/$goalMinutes min',
+                        isDaysGoal 
+                          ? '$currentDays/$goalDays dias'
+                          : '$currentMinutes/$goalMinutes min',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -652,58 +737,90 @@ class _CleanGoalsWidgetState extends ConsumerState<CleanGoalsWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Adicionar minutos:',
-                  style: TextStyle(
+                Text(
+                  isDaysGoal ? 'Check-in diário:' : 'Adicionar minutos:',
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 12),
                 
-                // Quick add buttons
-                Row(
-                  children: [
-                    _buildQuickAddButton(context, goal, 15),
-                    const SizedBox(width: 8),
-                    _buildQuickAddButton(context, goal, 30),
-                    const SizedBox(width: 8),
-                    _buildQuickAddButton(context, goal, 45),
-                    const SizedBox(width: 8),
-                    _buildQuickAddButton(context, goal, 60),
-                  ],
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Custom input
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: minutesController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Minutos customizados',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          suffixText: 'min',
+                if (isDaysGoal) ...[
+                  // Check-in button for days goals
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _toggleDailyCheckin(context, goal),
+                      icon: Icon(
+                        Icons.check_circle_outline,
+                        color: Colors.blue[700],
+                      ),
+                      label: const Text('Fazer Check-in do Dia'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue[100],
+                        foregroundColor: Colors.blue[700],
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: () {
-                        final minutes = int.tryParse(minutesController.text);
-                        if (minutes != null && minutes > 0) {
-                          _addMinutesToGoal(context, goal, minutes);
-                        }
-                      },
-                      child: const Text('Adicionar'),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Clique para marcar que você cumpriu a meta hoje. Você pode desmarcar clicando novamente.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
                     ),
-                  ],
-                ),
+                    textAlign: TextAlign.center,
+                  ),
+                ] else ...[
+                  // Quick add buttons for minutes goals
+                  Row(
+                    children: [
+                      _buildQuickAddButton(context, goal, 15),
+                      const SizedBox(width: 8),
+                      _buildQuickAddButton(context, goal, 30),
+                      const SizedBox(width: 8),
+                      _buildQuickAddButton(context, goal, 45),
+                      const SizedBox(width: 8),
+                      _buildQuickAddButton(context, goal, 60),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Custom input
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: minutesController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Minutos customizados',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            suffixText: 'min',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: () {
+                          final minutes = int.tryParse(minutesController.text);
+                          if (minutes != null && minutes > 0) {
+                            _addMinutesToGoal(context, goal, minutes);
+                          }
+                        },
+                        child: const Text('Adicionar'),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -1152,13 +1269,33 @@ class _CleanGoalsWidgetState extends ConsumerState<CleanGoalsWidget> {
         throw Exception('Usuário não logado');
       }
       
-      // Criar meta usando a nova função que suporta dias e minutos
-      await supabase.rpc('set_category_goal', params: {
-        'p_user_id': userId,
-        'p_category': category,
-        'p_goal_value': quantity,
-        'p_goal_type': type,
-      });
+      // Converter para minutos para compatibilidade com backend atual
+      int goalMinutes;
+      if (type == 'dias') {
+        goalMinutes = quantity * 30; // 30 min por dia
+      } else {
+        goalMinutes = quantity;
+      }
+      
+      // Calcular semana atual
+      final now = DateTime.now();
+      final weekStart = now.subtract(Duration(days: now.weekday - 1));
+      final weekEnd = weekStart.add(const Duration(days: 6));
+      
+      // Criar meta diretamente na tabela com goal_type
+      await supabase
+          .from('workout_category_goals')
+          .insert({
+            'user_id': userId,
+            'category': category.toLowerCase(),
+            'goal_minutes': goalMinutes,
+            'goal_type': type == 'dias' ? 'days' : 'minutes',
+            'week_start_date': weekStart.toIso8601String().split('T')[0],
+            'week_end_date': weekEnd.toIso8601String().split('T')[0],
+            'is_active': true,
+            'current_minutes': 0,
+            'completed': false,
+          });
       
       Navigator.pop(context); // Fechar loading
       
@@ -1460,6 +1597,95 @@ class _CleanGoalsWidgetState extends ConsumerState<CleanGoalsWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao excluir meta: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _toggleDailyCheckin(BuildContext context, Map<String, dynamic> goal) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final goalId = goal['id'];
+      final userId = supabase.auth.currentUser?.id;
+      
+      if (userId == null) {
+        throw Exception('Usuário não logado');
+      }
+      
+      // Verificar se já fez check-in hoje
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      final existingCheckin = await supabase
+          .from('daily_goal_checkins')
+          .select('id')
+          .eq('goal_id', goalId)
+          .eq('checkin_date', today)
+          .maybeSingle();
+      
+      if (existingCheckin != null) {
+        // Remover check-in (toggle off)
+        await supabase
+            .from('daily_goal_checkins')
+            .delete()
+            .eq('goal_id', goalId)
+            .eq('checkin_date', today);
+        
+        // Diminuir current_minutes em 30 (1 dia)
+        final currentMinutes = goal['current_minutes'] ?? 0;
+        await supabase
+            .from('workout_category_goals')
+            .update({
+              'current_minutes': (currentMinutes - 30).clamp(0, double.infinity).toInt(),
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .eq('id', goalId);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Check-in removido! ❌'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        // Adicionar check-in (toggle on)
+        await supabase
+            .from('daily_goal_checkins')
+            .insert({
+              'goal_id': goalId,
+              'user_id': userId,
+              'checkin_date': today,
+            });
+        
+        // Aumentar current_minutes em 30 (1 dia)
+        final currentMinutes = goal['current_minutes'] ?? 0;
+        await supabase
+            .from('workout_category_goals')
+            .update({
+              'current_minutes': currentMinutes + 30,
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .eq('id', goalId);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Check-in realizado! ✅'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      
+      // Recarregar lista de metas
+      await _loadGoals();
+      
+    } catch (e) {
+      debugPrint('❌ [CleanWidget] Erro ao fazer check-in: $e');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao fazer check-in: $e'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),

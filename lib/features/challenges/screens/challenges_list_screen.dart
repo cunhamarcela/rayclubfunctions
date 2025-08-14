@@ -117,7 +117,7 @@ class _ChallengesListScreenState extends ConsumerState<ChallengesListScreen> {
         tooltip: 'Meus grupos',
       ),
       bottomSheet: null,
-      bottomNavigationBar: const SharedBottomNavigationBar(currentIndex: 4),
+      bottomNavigationBar: const SharedBottomNavigationBar(currentIndex: -1),
     );
   }
 

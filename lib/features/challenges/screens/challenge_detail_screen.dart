@@ -144,7 +144,7 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen> {
           // REMOVIDO: BOTÃO "VER HISTÓRICO DE TREINOS" - SERÁ MOVIDO PARA DENTRO DO CONTEÚDO
         ],
       ),
-      bottomNavigationBar: const SharedBottomNavigationBar(currentIndex: 4),
+      bottomNavigationBar: const SharedBottomNavigationBar(currentIndex: -1),
       bottomSheet: challenge != null && userProgress == null && isActive ? 
         Container(
           width: double.infinity,

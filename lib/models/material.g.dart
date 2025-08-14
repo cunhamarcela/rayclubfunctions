@@ -19,6 +19,9 @@ _$MaterialImpl _$$MaterialImplFromJson(Map<String, dynamic> json) =>
       thumbnailUrl: json['thumbnail_url'] as String?,
       authorName: json['author_name'] as String?,
       workoutVideoId: json['workout_video_id'] as String?,
+      videoUrl: json['video_url'] as String?,
+      videoId: json['video_id'] as String?,
+      videoDuration: (json['video_duration'] as num?)?.toInt(),
       orderIndex: (json['order_index'] as num?)?.toInt(),
       isFeatured: json['is_featured'] as bool? ?? false,
       requiresExpertAccess: json['requires_expert_access'] as bool? ?? false,
@@ -42,6 +45,9 @@ Map<String, dynamic> _$$MaterialImplToJson(_$MaterialImpl instance) =>
       if (instance.thumbnailUrl case final value?) 'thumbnail_url': value,
       if (instance.authorName case final value?) 'author_name': value,
       if (instance.workoutVideoId case final value?) 'workout_video_id': value,
+      if (instance.videoUrl case final value?) 'video_url': value,
+      if (instance.videoId case final value?) 'video_id': value,
+      if (instance.videoDuration case final value?) 'video_duration': value,
       if (instance.orderIndex case final value?) 'order_index': value,
       'is_featured': instance.isFeatured,
       'requires_expert_access': instance.requiresExpertAccess,
@@ -56,6 +62,7 @@ const _$MaterialTypeEnumMap = {
   MaterialType.ebook: 'ebook',
   MaterialType.guide: 'guide',
   MaterialType.document: 'document',
+  MaterialType.video: 'video',
 };
 
 const _$MaterialContextEnumMap = {

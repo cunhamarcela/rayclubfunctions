@@ -7,6 +7,7 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 // Project imports:
 import 'package:ray_club_app/core/theme/app_colors.dart';
+import 'package:ray_club_app/features/home/widgets/simple_youtube_player.dart';
 
 /// Widget para reproduzir vídeos do YouTube com controles nativos
 class YouTubePlayerWidget extends StatefulWidget {
@@ -28,103 +29,187 @@ class YouTubePlayerWidget extends StatefulWidget {
 }
 
 class _YouTubePlayerWidgetState extends State<YouTubePlayerWidget> {
-  late YoutubePlayerController _controller;
+  YoutubePlayerController? _controller;
   bool _isPlayerReady = false;
   bool _isFullScreen = false;
   bool _hasError = false;
   String? _errorMessage;
+  bool _useSimpleFallback = false;
+  int _retryCount = 0;
 
   @override
   void initState() {
     super.initState();
-    _initializePlayer();
+    // ✅ TEMPORÁRIO: Forçar uso do player WebView que é mais estável
+    debugPrint('🎬 [YouTubePlayerWidget] Usando SimpleYouTubePlayer por padrão');
+    setState(() {
+      _useSimpleFallback = true;
+    });
+    // _initializePlayer(); // Desabilitado temporariamente
   }
 
   void _initializePlayer() {
     try {
+      debugPrint('🎬 [YouTubePlayerWidget] Inicializando player para URL: ${widget.videoUrl}');
+      
       // Extrair o ID do vídeo da URL
       final videoId = YoutubePlayer.convertUrlToId(widget.videoUrl);
+      debugPrint('🎬 [YouTubePlayerWidget] Video ID extraído: $videoId');
       
       if (videoId != null && videoId.isNotEmpty) {
-        _controller = YoutubePlayerController(
-          initialVideoId: videoId,
-          flags: const YoutubePlayerFlags(
-            autoPlay: false,
-            mute: false,
-            enableCaption: true,
-            captionLanguage: 'pt',
-            forceHD: false,
-            useHybridComposition: true,
-          ),
-        );
+        // ✅ MELHORIA: Delay para garantir que o widget esteja montado
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (!mounted) return;
+          
+          try {
+            _controller = YoutubePlayerController(
+              initialVideoId: videoId,
+              flags: const YoutubePlayerFlags(
+                autoPlay: false,  // ✅ Manter false para evitar problemas
+                mute: false,
+                enableCaption: true,
+                captionLanguage: 'pt',
+                forceHD: false,
+                useHybridComposition: true,  // ✅ Importante para estabilidade
+                disableDragSeek: false,
+                loop: false,
+                isLive: false,
+                hideControls: false,
+                controlsVisibleAtStart: true,  // ✅ Garantir que controles apareçam
+              ),
+            );
 
-        _controller.addListener(_onPlayerStateChange);
+            _controller!.addListener(_onPlayerStateChange);
+            debugPrint('🎬 [YouTubePlayerWidget] ✅ Controller criado com sucesso');
+            
+            if (mounted) {
+              setState(() {
+                _hasError = false;
+              });
+            }
+          } catch (e) {
+            debugPrint('🎬 [YouTubePlayerWidget] ❌ Erro ao criar controller: $e');
+            _retryCount++;
+            if (_retryCount >= 2) {
+              debugPrint('🎬 [YouTubePlayerWidget] 🔄 Usando fallback simples após ${_retryCount} tentativas');
+              if (mounted) {
+                setState(() {
+                  _useSimpleFallback = true;
+                });
+              }
+            } else if (mounted) {
+              setState(() {
+                _hasError = true;
+                _errorMessage = 'Erro ao criar player: $e';
+              });
+            }
+          }
+        });
       } else {
         // Handle invalid URL
+        debugPrint('🎬 [YouTubePlayerWidget] ❌ URL inválida: ${widget.videoUrl}');
         setState(() {
           _hasError = true;
           _errorMessage = 'URL do YouTube inválida: ${widget.videoUrl}';
         });
-        debugPrint('URL do YouTube inválida: ${widget.videoUrl}');
       }
     } catch (e) {
+      debugPrint('🎬 [YouTubePlayerWidget] ❌ Erro geral na inicialização: $e');
       setState(() {
         _hasError = true;
         _errorMessage = 'Erro ao inicializar player: $e';
       });
-      debugPrint('Erro ao inicializar player: $e');
     }
   }
 
   void _onPlayerStateChange() {
     try {
-      if (_controller.value.isReady && !_isPlayerReady) {
+      if (!mounted) return;
+      
+      final currentValue = _controller!.value;
+      debugPrint('🎬 [YouTubePlayerWidget] Estado alterado - isReady: ${currentValue.isReady}, hasError: ${currentValue.hasError}');
+      
+      if (currentValue.isReady && !_isPlayerReady) {
+        debugPrint('🎬 [YouTubePlayerWidget] ✅ Player ficou pronto!');
         setState(() {
           _isPlayerReady = true;
           _hasError = false;
         });
       }
 
-      if (_controller.value.isFullScreen != _isFullScreen) {
+      if (currentValue.isFullScreen != _isFullScreen) {
+        debugPrint('🎬 [YouTubePlayerWidget] 🔄 Mudança de tela cheia: ${currentValue.isFullScreen}');
         setState(() {
-          _isFullScreen = _controller.value.isFullScreen;
+          _isFullScreen = currentValue.isFullScreen;
         });
       }
 
       // Detectar erros do player
-      if (_controller.value.hasError) {
+      if (currentValue.hasError) {
+        debugPrint('🎬 [YouTubePlayerWidget] ❌ Player reportou erro');
         setState(() {
           _hasError = true;
           _errorMessage = 'Erro no player do YouTube';
         });
       }
     } catch (e) {
-      debugPrint('Erro no listener do player: $e');
+      debugPrint('🎬 [YouTubePlayerWidget] ❌ Erro no listener: $e');
     }
   }
 
   @override
   void dispose() {
     try {
-      _controller.removeListener(_onPlayerStateChange);
-      _controller.dispose();
+      debugPrint('🎬 [YouTubePlayerWidget] Fazendo dispose do controller');
+      if (_controller != null) {
+        _controller!.removeListener(_onPlayerStateChange);
+        _controller!.dispose();
+      }
     } catch (e) {
-      debugPrint('Erro ao fazer dispose do controller: $e');
+      debugPrint('🎬 [YouTubePlayerWidget] ❌ Erro ao fazer dispose: $e');
     }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('🎬 [YouTubePlayerWidget] Build chamado - hasError: $_hasError, isPlayerReady: $_isPlayerReady, useSimpleFallback: $_useSimpleFallback');
+    
+    // ✅ USAR FALLBACK SIMPLES SE NECESSÁRIO
+    if (_useSimpleFallback) {
+      debugPrint('🎬 [YouTubePlayerWidget] 🔄 Usando SimpleYouTubePlayer como fallback');
+      return SimpleYouTubePlayer(
+        videoUrl: widget.videoUrl,
+        title: widget.title,
+        description: widget.description,
+        onClose: widget.onClose,
+      );
+    }
+    
     // Verificar se há erro ou URL inválida
     if (_hasError) {
+      debugPrint('🎬 [YouTubePlayerWidget] Exibindo widget de erro');
       return _buildErrorWidget();
     }
 
     final videoId = YoutubePlayer.convertUrlToId(widget.videoUrl);
     
     if (videoId == null || videoId.isEmpty) {
+      debugPrint('🎬 [YouTubePlayerWidget] Video ID inválido, exibindo erro');
       return _buildErrorWidget();
+    }
+
+    // ✅ AGUARDAR INICIALIZAÇÃO DO CONTROLLER
+    if (!_isPlayerReady && _controller == null) {
+      debugPrint('🎬 [YouTubePlayerWidget] Controller ainda não criado, exibindo loading');
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: Colors.white,
+          ),
+        ),
+      );
     }
 
     // Modo simplificado (sem header) quando title estiver vazio
@@ -244,24 +329,38 @@ class _YouTubePlayerWidgetState extends State<YouTubePlayerWidget> {
       borderRadius: BorderRadius.circular(12),
       child: YoutubePlayerBuilder(
         onExitFullScreen: () {
-          // Forçar orientação portrait ao sair do fullscreen
-          SystemChrome.setPreferredOrientations([
-            DeviceOrientation.portraitUp,
-          ]);
+          debugPrint('🎬 [YouTubePlayerWidget] Saindo do modo tela cheia');
+          // ✅ REMOVIDO: Não forçar orientação para evitar loops
         },
         player: YoutubePlayer(
-          controller: _controller,
+          controller: _controller!,
           showVideoProgressIndicator: true,
           progressIndicatorColor: AppColors.primary,
+          topActions: <Widget>[
+            const SizedBox(width: 8.0),
+            Expanded(
+              child: Text(
+                widget.title.isEmpty ? 'Vídeo' : widget.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18.0,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
+          ],
           onReady: () {
-            setState(() {
-              _isPlayerReady = true;
-              _hasError = false;
-            });
-            debugPrint('Player pronto para: ${widget.title}');
+            debugPrint('🎬 [YouTubePlayerWidget] ✅ onReady callback - Player pronto para: ${widget.title}');
+            if (mounted) {
+              setState(() {
+                _isPlayerReady = true;
+                _hasError = false;
+              });
+            }
           },
           onEnded: (metaData) {
-            debugPrint('Vídeo finalizado: ${metaData.videoId}');
+            debugPrint('🎬 [YouTubePlayerWidget] 🏁 Vídeo finalizado: ${metaData.videoId}');
           },
         ),
         builder: (context, player) {
@@ -291,9 +390,9 @@ class _YouTubePlayerWidgetState extends State<YouTubePlayerWidget> {
                         icon: Icons.replay_10,
                         onPressed: () {
                           try {
-                            _controller.seekTo(
+                            _controller!.seekTo(
                               Duration(
-                                seconds: (_controller.value.position.inSeconds - 10).clamp(0, double.infinity).toInt(),
+                                seconds: (_controller!.value.position.inSeconds - 10).clamp(0, double.infinity).toInt(),
                               ),
                             );
                           } catch (e) {
@@ -303,29 +402,29 @@ class _YouTubePlayerWidgetState extends State<YouTubePlayerWidget> {
                         label: '-10s',
                       ),
                       _buildControlButton(
-                        icon: _controller.value.isPlaying 
+                        icon: _controller!.value.isPlaying 
                             ? Icons.pause 
                             : Icons.play_arrow,
                         onPressed: () {
                           try {
-                            if (_controller.value.isPlaying) {
-                              _controller.pause();
+                            if (_controller!.value.isPlaying) {
+                              _controller!.pause();
                             } else {
-                              _controller.play();
+                              _controller!.play();
                             }
                           } catch (e) {
                             debugPrint('Erro ao play/pause: $e');
                           }
                         },
-                        label: _controller.value.isPlaying ? 'Pausar' : 'Play',
+                        label: _controller!.value.isPlaying ? 'Pausar' : 'Play',
                       ),
                       _buildControlButton(
                         icon: Icons.forward_10,
                         onPressed: () {
                           try {
-                            _controller.seekTo(
+                            _controller!.seekTo(
                               Duration(
-                                seconds: _controller.value.position.inSeconds + 10,
+                                seconds: _controller!.value.position.inSeconds + 10,
                               ),
                             );
                           } catch (e) {
@@ -338,7 +437,7 @@ class _YouTubePlayerWidgetState extends State<YouTubePlayerWidget> {
                         icon: Icons.fullscreen,
                         onPressed: () {
                           try {
-                            _controller.toggleFullScreenMode();
+                            _controller!.toggleFullScreenMode();
                           } catch (e) {
                             debugPrint('Erro ao alternar tela cheia: $e');
                           }
@@ -440,6 +539,7 @@ class _YouTubePlayerWidgetState extends State<YouTubePlayerWidget> {
                   setState(() {
                     _hasError = false;
                     _errorMessage = null;
+                    _retryCount = 0;
                   });
                   _initializePlayer();
                 },
@@ -449,7 +549,20 @@ class _YouTubePlayerWidgetState extends State<YouTubePlayerWidget> {
                 ),
                 child: const Text('Tentar novamente'),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _useSimpleFallback = true;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Player simples'),
+              ),
+              const SizedBox(width: 8),
               OutlinedButton(
                 onPressed: () {
                   if (widget.onClose != null) {

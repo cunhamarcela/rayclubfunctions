@@ -12,4 +12,24 @@ final workoutVideoMaterialsProvider = FutureProvider.family<List<Material>, Stri
 final nutritionMaterialsProvider = FutureProvider<List<Material>>((ref) async {
   final pdfService = ref.watch(pdfServiceProvider);
   return pdfService.getMaterialsByContext(MaterialContext.nutrition);
+});
+
+/// Provider para materiais de corrida (planilhas de treino)
+final runningMaterialsProvider = FutureProvider<List<Material>>((ref) async {
+  final pdfService = ref.watch(pdfServiceProvider);
+  
+  // Buscar todos os materiais de treino e filtrar por corrida
+  final allWorkoutMaterials = await pdfService.getMaterialsByContext(MaterialContext.workout);
+  
+  // Filtrar materiais relacionados à corrida
+  return allWorkoutMaterials.where((material) {
+    final titleLower = material.title.toLowerCase();
+    final descriptionLower = material.description.toLowerCase();
+    
+    return titleLower.contains('corrida') || 
+           titleLower.contains('running') ||
+           titleLower.contains('km') ||
+           descriptionLower.contains('corrida') ||
+           descriptionLower.contains('running');
+  }).toList();
 }); 

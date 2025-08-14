@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Project imports:
-import 'package:ray_club_app/features/dashboard/widgets/charts/weekly_evolution_chart.dart';
+import 'package:ray_club_app/features/dashboard/widgets/charts/daily_workout_chart.dart';
 import 'package:ray_club_app/features/goals/models/workout_category_goal.dart';
 import 'package:ray_club_app/features/goals/repositories/workout_category_goals_repository.dart';
 import 'package:ray_club_app/features/goals/widgets/set_category_goal_modal.dart';
+import 'package:ray_club_app/features/goals/widgets/weekly_goal_progress_summary_widget.dart';
+import 'package:ray_club_app/features/goals/widgets/weekly_goal_evolution_chart_widget.dart';
 
 /// Provider para as metas por categoria do usuário
 final workoutCategoryGoalsProvider = FutureProvider<List<WorkoutCategoryGoal>>((ref) async {
@@ -22,21 +24,38 @@ class EnhancedDashboardWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(context),
-          const SizedBox(height: 24),
-          _buildCategoryGoalsSection(context, ref),
-          const SizedBox(height: 24),
-          _buildChartsSection(context, ref),
-          const SizedBox(height: 24),
-          _buildQuickActions(context),
-          const SizedBox(height: 16),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildHeader(context),
+        const SizedBox(height: 20),
+        _buildCategoryGoalsSection(context, ref),
+        const SizedBox(height: 20),
+        _buildChartsSection(context, ref),
+        const SizedBox(height: 20),
+        _buildQuickActions(context),
+      ],
+    );
+  }
+
+  /// Widget público para evolução semanal
+  static Widget buildWeeklyEvolution(BuildContext context, WidgetRef ref) {
+    return EnhancedDashboardWidget()._buildChartsSection(context, ref);
+  }
+
+  /// Widget público para metas da semana
+  static Widget buildWeeklyGoals(BuildContext context, WidgetRef ref) {
+    return Column(
+      children: [
+        // Novo sistema de metas semanais expandidas
+        const WeeklyGoalProgressSummaryWidget(),
+        const SizedBox(height: 16),
+        // Estatísticas rápidas das metas
+        const WeeklyGoalStatsWidget(),
+        const SizedBox(height: 16),
+        // Gráfico de evolução das metas
+        const WeeklyGoalEvolutionChartWidget(),
+      ],
     );
   }
 
@@ -352,8 +371,6 @@ class EnhancedDashboardWidget extends ConsumerWidget {
   }
 
   Widget _buildChartsSection(BuildContext context, WidgetRef ref) {
-    final goalsAsync = ref.watch(workoutCategoryGoalsProvider);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -366,39 +383,21 @@ class EnhancedDashboardWidget extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        goalsAsync.when(
-          data: (goals) => _buildChartsForGoals(context, ref, goals),
-          loading: () => _buildChartsLoading(),
-          error: (error, stackTrace) => _buildChartsEmpty(),
+        // Usar o novo gráfico de evolução diária dos treinos
+        const DailyWorkoutChart(
+          days: 7,
+          height: 280,
         ),
       ],
     );
   }
 
+  // Remover os métodos antigos que dependiam de metas
   Widget _buildChartsForGoals(BuildContext context, WidgetRef ref, List<WorkoutCategoryGoal> goals) {
-    if (goals.isEmpty) {
-      return _buildChartsEmpty();
-    }
-
-    // Mostrar gráfico da primeira categoria ou da mais ativa
-    final primaryGoal = goals.first;
-    
-    return FutureBuilder<List<WeeklyEvolution>>(
-      future: ref.read(workoutCategoryGoalsRepositoryProvider)
-          .getWeeklyEvolution(primaryGoal.category),
-      builder: (context, snapshot) {
-        if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-          return WeeklyEvolutionChart(
-            evolutionData: snapshot.data!,
-            category: primaryGoal.category,
-            height: 280,
-          );
-        } else if (snapshot.hasError) {
-          return _buildChartsError();
-        } else {
-          return _buildChartsLoading();
-        }
-      },
+    // Este método não é mais necessário, mas mantido para compatibilidade
+    return const DailyWorkoutChart(
+      days: 7,
+      height: 280,
     );
   }
 
@@ -491,7 +490,6 @@ class EnhancedDashboardWidget extends ConsumerWidget {
 
   Widget _buildQuickActions(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Ações Rápidas',
@@ -502,28 +500,31 @@ class EnhancedDashboardWidget extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildQuickActionCard(
-                icon: Icons.flag,
-                title: 'Nova Meta',
-                subtitle: 'Definir meta por categoria',
-                color: const Color(0xFF2196F3),
-                onTap: () => _showSetGoalModal(context),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: _buildQuickActionCard(
+                  icon: Icons.flag,
+                  title: 'Nova Meta',
+                  subtitle: 'Definir meta por categoria',
+                  color: const Color(0xFF2196F3),
+                  onTap: () => _showSetGoalModal(context),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildQuickActionCard(
-                icon: Icons.timeline,
-                title: 'Ver Gráficos',
-                subtitle: 'Analisar evolução',
-                color: const Color(0xFF4CAF50),
-                onTap: () => _showFullChartsView(context),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildQuickActionCard(
+                  icon: Icons.timeline,
+                  title: 'Ver Gráficos',
+                  subtitle: 'Analisar evolução',
+                  color: const Color(0xFF4CAF50),
+                  onTap: () => _showFullChartsView(context),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -539,36 +540,42 @@ class EnhancedDashboardWidget extends ConsumerWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: color.withOpacity(0.2)),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
               color: color,
-              size: 24,
+              size: 28,
             ),
             const SizedBox(height: 12),
             Text(
               title,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: color,
               ),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               subtitle,
               style: TextStyle(
                 fontSize: 12,
                 color: color.withOpacity(0.8),
+                height: 1.3,
               ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
             ),
           ],
         ),

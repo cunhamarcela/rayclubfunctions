@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 /// Widget para exibir vídeos do YouTube nas receitas
+/// Versão simplificada e estável usando WebView
 class YouTubePlayerWidget extends StatefulWidget {
   final String videoId;
   final bool autoPlay;
@@ -20,140 +20,127 @@ class YouTubePlayerWidget extends StatefulWidget {
 }
 
 class _YouTubePlayerWidgetState extends State<YouTubePlayerWidget> {
-  late YoutubePlayerController _controller;
-  late PlayerState _playerState;
-  late YoutubeMetaData _videoMetaData;
-  bool _isPlayerReady = false;
+  late WebViewController _webController;
+  bool _isLoading = true;
+  bool _hasError = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = YoutubePlayerController(
-      initialVideoId: widget.videoId,
-      flags: YoutubePlayerFlags(
-        autoPlay: widget.autoPlay,
-        mute: false,
-        disableDragSeek: false,
-        loop: false,
-        isLive: false,
-        forceHD: false,
-        enableCaption: true,
-        hideControls: !widget.showControls,
-      ),
-    )..addListener(listener);
-    _videoMetaData = const YoutubeMetaData();
-    _playerState = PlayerState.unknown;
+    _initializePlayer();
   }
 
-  void listener() {
-    if (_isPlayerReady && mounted && !_controller.value.isFullScreen) {
-      setState(() {
-        _playerState = _controller.value.playerState;
-        _videoMetaData = _controller.metadata;
-      });
+  void _initializePlayer() {
+    try {
+      debugPrint('🍽️ [NutritionYouTubePlayer] Inicializando player para videoId: ${widget.videoId}');
+      
+      final embedUrl = 'https://www.youtube.com/embed/${widget.videoId}?autoplay=0&controls=1&showinfo=0&rel=0&modestbranding=1&playsinline=1';
+      
+      _webController = WebViewController()
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..setNavigationDelegate(
+          NavigationDelegate(
+            onPageStarted: (String url) {
+              debugPrint('🌐 [NutritionYouTubePlayer] Carregando: $url');
+            },
+            onPageFinished: (String url) {
+              debugPrint('🌐 [NutritionYouTubePlayer] ✅ Carregado: $url');
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+              }
+            },
+            onWebResourceError: (WebResourceError error) {
+              debugPrint('🌐 [NutritionYouTubePlayer] ❌ Erro: ${error.description}');
+              if (mounted) {
+                setState(() {
+                  _hasError = true;
+                  _isLoading = false;
+                });
+              }
+            },
+          ),
+        )
+        ..loadRequest(Uri.parse(embedUrl));
+        
+    } catch (e) {
+      debugPrint('🌐 [NutritionYouTubePlayer] ❌ Erro na inicialização: $e');
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _isLoading = false;
+        });
+      }
     }
   }
 
   @override
-  void deactivate() {
-    _controller.pause();
-    super.deactivate();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return YoutubePlayerBuilder(
-      onExitFullScreen: () {
-        // Força orientação portrait ao sair do fullscreen
-        SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-      },
-      player: YoutubePlayer(
-        controller: _controller,
-        showVideoProgressIndicator: true,
-        progressIndicatorColor: const Color(0xFFCDA8F0),
-        topActions: <Widget>[
-          const SizedBox(width: 8.0),
-          Expanded(
-            child: Text(
-              _controller.metadata.title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18.0,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
-          ),
-        ],
-        onReady: () {
-          _isPlayerReady = true;
-        },
-        onEnded: (data) {
-          _controller.pause();
-        },
+    return Container(
+      width: double.infinity,
+      height: 220, // ✅ Altura fixa para evitar problemas de constraint
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(12),
       ),
-      builder: (context, player) {
-        return Column(
-          children: [
-            player,
-            if (widget.showControls && _isPlayerReady)
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        _controller.value.isPlaying
-                            ? Icons.pause
-                            : Icons.play_arrow,
-                      ),
-                      onPressed: _controller.value.isPlaying
-                          ? _controller.pause
-                          : _controller.play,
-                    ),
-                    Text(
-                      _formatDuration(_controller.value.position),
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    const Text('/'),
-                    Text(
-                      _formatDuration(_controller.metadata.duration),
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        _controller.value.isFullScreen
-                            ? Icons.fullscreen_exit
-                            : Icons.fullscreen,
-                      ),
-                      onPressed: () {
-                        _controller.toggleFullScreenMode();
-                      },
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        );
-      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: _buildContent(),
+      ),
     );
   }
 
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final hours = twoDigits(duration.inHours);
-    final minutes = twoDigits(duration.inMinutes.remainder(60));
-    final seconds = twoDigits(duration.inSeconds.remainder(60));
-    
-    return duration.inHours > 0 
-        ? '$hours:$minutes:$seconds'
-        : '$minutes:$seconds';
+  Widget _buildContent() {
+    if (_hasError) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: 48,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Erro ao carregar vídeo',
+              style: TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _hasError = false;
+                  _isLoading = true;
+                });
+                _initializePlayer();
+              },
+              child: Text('Tentar novamente'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Carregando vídeo...',
+              style: TextStyle(color: Colors.white),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return WebViewWidget(controller: _webController);
   }
-} 
+}

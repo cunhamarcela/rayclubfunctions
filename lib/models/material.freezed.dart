@@ -38,6 +38,15 @@ mixin _$Material {
   @JsonKey(name: 'workout_video_id')
   String? get workoutVideoId =>
       throw _privateConstructorUsedError; // Para PDFs específicos de treinos
+  @JsonKey(name: 'video_url')
+  String? get videoUrl =>
+      throw _privateConstructorUsedError; // Para materiais em vídeo
+  @JsonKey(name: 'video_id')
+  String? get videoId =>
+      throw _privateConstructorUsedError; // ID do YouTube para vídeos
+  @JsonKey(name: 'video_duration')
+  int? get videoDuration =>
+      throw _privateConstructorUsedError; // Duração em segundos
   @JsonKey(name: 'order_index')
   int? get orderIndex => throw _privateConstructorUsedError;
   @JsonKey(name: 'is_featured')
@@ -75,6 +84,9 @@ abstract class $MaterialCopyWith<$Res> {
       @JsonKey(name: 'thumbnail_url') String? thumbnailUrl,
       @JsonKey(name: 'author_name') String? authorName,
       @JsonKey(name: 'workout_video_id') String? workoutVideoId,
+      @JsonKey(name: 'video_url') String? videoUrl,
+      @JsonKey(name: 'video_id') String? videoId,
+      @JsonKey(name: 'video_duration') int? videoDuration,
       @JsonKey(name: 'order_index') int? orderIndex,
       @JsonKey(name: 'is_featured') bool isFeatured,
       @JsonKey(name: 'requires_expert_access') bool requiresExpertAccess,
@@ -107,6 +119,9 @@ class _$MaterialCopyWithImpl<$Res, $Val extends Material>
     Object? thumbnailUrl = freezed,
     Object? authorName = freezed,
     Object? workoutVideoId = freezed,
+    Object? videoUrl = freezed,
+    Object? videoId = freezed,
+    Object? videoDuration = freezed,
     Object? orderIndex = freezed,
     Object? isFeatured = null,
     Object? requiresExpertAccess = null,
@@ -154,6 +169,18 @@ class _$MaterialCopyWithImpl<$Res, $Val extends Material>
           ? _value.workoutVideoId
           : workoutVideoId // ignore: cast_nullable_to_non_nullable
               as String?,
+      videoUrl: freezed == videoUrl
+          ? _value.videoUrl
+          : videoUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      videoId: freezed == videoId
+          ? _value.videoId
+          : videoId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      videoDuration: freezed == videoDuration
+          ? _value.videoDuration
+          : videoDuration // ignore: cast_nullable_to_non_nullable
+              as int?,
       orderIndex: freezed == orderIndex
           ? _value.orderIndex
           : orderIndex // ignore: cast_nullable_to_non_nullable
@@ -197,6 +224,9 @@ abstract class _$$MaterialImplCopyWith<$Res>
       @JsonKey(name: 'thumbnail_url') String? thumbnailUrl,
       @JsonKey(name: 'author_name') String? authorName,
       @JsonKey(name: 'workout_video_id') String? workoutVideoId,
+      @JsonKey(name: 'video_url') String? videoUrl,
+      @JsonKey(name: 'video_id') String? videoId,
+      @JsonKey(name: 'video_duration') int? videoDuration,
       @JsonKey(name: 'order_index') int? orderIndex,
       @JsonKey(name: 'is_featured') bool isFeatured,
       @JsonKey(name: 'requires_expert_access') bool requiresExpertAccess,
@@ -227,6 +257,9 @@ class __$$MaterialImplCopyWithImpl<$Res>
     Object? thumbnailUrl = freezed,
     Object? authorName = freezed,
     Object? workoutVideoId = freezed,
+    Object? videoUrl = freezed,
+    Object? videoId = freezed,
+    Object? videoDuration = freezed,
     Object? orderIndex = freezed,
     Object? isFeatured = null,
     Object? requiresExpertAccess = null,
@@ -274,6 +307,18 @@ class __$$MaterialImplCopyWithImpl<$Res>
           ? _value.workoutVideoId
           : workoutVideoId // ignore: cast_nullable_to_non_nullable
               as String?,
+      videoUrl: freezed == videoUrl
+          ? _value.videoUrl
+          : videoUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      videoId: freezed == videoId
+          ? _value.videoId
+          : videoId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      videoDuration: freezed == videoDuration
+          ? _value.videoDuration
+          : videoDuration // ignore: cast_nullable_to_non_nullable
+              as int?,
       orderIndex: freezed == orderIndex
           ? _value.orderIndex
           : orderIndex // ignore: cast_nullable_to_non_nullable
@@ -312,6 +357,9 @@ class _$MaterialImpl implements _Material {
       @JsonKey(name: 'thumbnail_url') this.thumbnailUrl,
       @JsonKey(name: 'author_name') this.authorName,
       @JsonKey(name: 'workout_video_id') this.workoutVideoId,
+      @JsonKey(name: 'video_url') this.videoUrl,
+      @JsonKey(name: 'video_id') this.videoId,
+      @JsonKey(name: 'video_duration') this.videoDuration,
       @JsonKey(name: 'order_index') this.orderIndex,
       @JsonKey(name: 'is_featured') this.isFeatured = false,
       @JsonKey(name: 'requires_expert_access')
@@ -351,6 +399,18 @@ class _$MaterialImpl implements _Material {
   final String? workoutVideoId;
 // Para PDFs específicos de treinos
   @override
+  @JsonKey(name: 'video_url')
+  final String? videoUrl;
+// Para materiais em vídeo
+  @override
+  @JsonKey(name: 'video_id')
+  final String? videoId;
+// ID do YouTube para vídeos
+  @override
+  @JsonKey(name: 'video_duration')
+  final int? videoDuration;
+// Duração em segundos
+  @override
   @JsonKey(name: 'order_index')
   final int? orderIndex;
   @override
@@ -368,7 +428,7 @@ class _$MaterialImpl implements _Material {
 
   @override
   String toString() {
-    return 'Material(id: $id, title: $title, description: $description, materialType: $materialType, materialContext: $materialContext, filePath: $filePath, fileSize: $fileSize, thumbnailUrl: $thumbnailUrl, authorName: $authorName, workoutVideoId: $workoutVideoId, orderIndex: $orderIndex, isFeatured: $isFeatured, requiresExpertAccess: $requiresExpertAccess, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'Material(id: $id, title: $title, description: $description, materialType: $materialType, materialContext: $materialContext, filePath: $filePath, fileSize: $fileSize, thumbnailUrl: $thumbnailUrl, authorName: $authorName, workoutVideoId: $workoutVideoId, videoUrl: $videoUrl, videoId: $videoId, videoDuration: $videoDuration, orderIndex: $orderIndex, isFeatured: $isFeatured, requiresExpertAccess: $requiresExpertAccess, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -394,6 +454,11 @@ class _$MaterialImpl implements _Material {
                 other.authorName == authorName) &&
             (identical(other.workoutVideoId, workoutVideoId) ||
                 other.workoutVideoId == workoutVideoId) &&
+            (identical(other.videoUrl, videoUrl) ||
+                other.videoUrl == videoUrl) &&
+            (identical(other.videoId, videoId) || other.videoId == videoId) &&
+            (identical(other.videoDuration, videoDuration) ||
+                other.videoDuration == videoDuration) &&
             (identical(other.orderIndex, orderIndex) ||
                 other.orderIndex == orderIndex) &&
             (identical(other.isFeatured, isFeatured) ||
@@ -420,6 +485,9 @@ class _$MaterialImpl implements _Material {
       thumbnailUrl,
       authorName,
       workoutVideoId,
+      videoUrl,
+      videoId,
+      videoDuration,
       orderIndex,
       isFeatured,
       requiresExpertAccess,
@@ -455,6 +523,9 @@ abstract class _Material implements Material {
       @JsonKey(name: 'thumbnail_url') final String? thumbnailUrl,
       @JsonKey(name: 'author_name') final String? authorName,
       @JsonKey(name: 'workout_video_id') final String? workoutVideoId,
+      @JsonKey(name: 'video_url') final String? videoUrl,
+      @JsonKey(name: 'video_id') final String? videoId,
+      @JsonKey(name: 'video_duration') final int? videoDuration,
       @JsonKey(name: 'order_index') final int? orderIndex,
       @JsonKey(name: 'is_featured') final bool isFeatured,
       @JsonKey(name: 'requires_expert_access') final bool requiresExpertAccess,
@@ -491,6 +562,15 @@ abstract class _Material implements Material {
   @override
   @JsonKey(name: 'workout_video_id')
   String? get workoutVideoId; // Para PDFs específicos de treinos
+  @override
+  @JsonKey(name: 'video_url')
+  String? get videoUrl; // Para materiais em vídeo
+  @override
+  @JsonKey(name: 'video_id')
+  String? get videoId; // ID do YouTube para vídeos
+  @override
+  @JsonKey(name: 'video_duration')
+  int? get videoDuration; // Duração em segundos
   @override
   @JsonKey(name: 'order_index')
   int? get orderIndex;

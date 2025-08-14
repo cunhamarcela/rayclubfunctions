@@ -14,6 +14,7 @@ import 'package:ray_club_app/features/benefits/models/redeemed_benefit_model.dar
 import 'package:ray_club_app/features/challenges/models/challenge.dart';
 import 'package:ray_club_app/features/challenges/models/challenge_progress.dart';
 import 'package:ray_club_app/features/dashboard/models/dashboard_data.dart';
+import 'package:ray_club_app/features/dashboard/models/dashboard_period.dart';
 import 'package:ray_club_app/features/home/models/home_model.dart';
 import 'package:ray_club_app/utils/log_utils.dart';
 import 'package:ray_club_app/utils/json_utils.dart';
@@ -34,24 +35,48 @@ class DashboardRepository {
 
   /// Obtém os dados do dashboard a partir do Supabase
   /// [userId] - ID do usuário para buscar os dados
-  Future<DashboardData> getDashboardData(String userId) async {
+  /// [period] - Período para filtrar os dados (opcional, padrão: este mês)
+  /// [customRange] - Range personalizado se period for custom
+  Future<DashboardData> getDashboardData(
+    String userId, {
+    DashboardPeriod period = DashboardPeriod.thisMonth,
+    DateRange? customRange,
+  }) async {
     try {
-      // Use a função simplificada get_dashboard_core para obter dados
-      final response = await _client
-          .rpc('get_dashboard_core', params: {'user_id_param': userId});
+      // Calcula as datas baseado no período selecionado
+      final dateRange = period.calculateDateRange(customRange);
+      
+      debugPrint('📊 Dashboard: Buscando dados para período ${period.displayName}');
+      debugPrint('📅 Período: ${dateRange.formattedRange}');
+      
+      // Use a função atualizada get_dashboard_core_with_period para obter dados
+      final response = await _client.rpc('get_dashboard_core_with_period', params: {
+        'user_id_param': userId,
+        'start_date_param': dateRange.start.toIso8601String().split('T')[0],
+        'end_date_param': dateRange.end.toIso8601String().split('T')[0],
+      });
       
       // Converte a resposta JSON para o modelo DashboardData
       final dashboardData = DashboardData.fromJson(response);
       
+      debugPrint('✅ Dashboard: Dados carregados - ${dashboardData.totalWorkouts} treinos');
+      
       return dashboardData;
     } catch (e) {
-      debugPrint('Erro ao buscar dados do dashboard: $e');
+      debugPrint('❌ Erro ao buscar dados do dashboard: $e');
       throw AppException(
         message: 'Não foi possível carregar os dados do dashboard',
         code: 'dashboard_fetch_error',
         originalError: e,
       );
     }
+  }
+  
+  /// Obtém os dados do dashboard com o método legado (compatibilidade)
+  /// [userId] - ID do usuário para buscar os dados
+  @Deprecated('Use getDashboardData com período. Será removido em versões futuras.')
+  Future<DashboardData> getDashboardDataLegacy(String userId) async {
+    return getDashboardData(userId, period: DashboardPeriod.thisMonth);
   }
   
   /// Atualiza o consumo de água do usuário

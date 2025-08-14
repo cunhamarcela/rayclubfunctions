@@ -130,22 +130,6 @@ class WorkoutVideoCard extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(
-                Icons.timer_outlined,
-                size: 16,
-                color: canAccess ? AppColors.textSecondary : AppColors.textDisabled,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                video.duration,
-                style: AppTextStyles.smallText.copyWith(
-                  color: canAccess ? AppColors.textSecondary : AppColors.textDisabled,
-                ),
-              ),
-            ],
-          ),
           // ✨ NOVO: Indicador de PDF
           if (video.hasPdfMaterials)
             Container(
@@ -256,26 +240,7 @@ class WorkoutVideoCard extends ConsumerWidget {
               ),
             ),
             
-            // Duration badge
-            Positioned(
-              bottom: 4,
-              right: 4,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.8),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  video.duration,
-                  style: AppTextStyles.smallText.copyWith(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
+
           ],
         ),
       );

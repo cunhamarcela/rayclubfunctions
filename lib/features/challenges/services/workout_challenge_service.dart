@@ -53,13 +53,7 @@ class WorkoutChallengeService {
         return 0;
       }
       
-      // Verificar se tem duração mínima para contabilizar em desafios (45 minutos)
-      if (record.durationMinutes < 45) {
-        debugPrint('⚠️ Duração do treino insuficiente: ${record.durationMinutes} minutos. Mínimo requerido: 45 minutos.');
-        throw ChallengeProcessingException(
-          message: 'Duração mínima para desafios é de 45 minutos. Este treino tem ${record.durationMinutes} minutos.',
-        );
-      }
+      // Aceitar treinos de qualquer duração
       
       // ✅ IMPORTANTE: Verificar se o treino já tem um desafio atribuído
       if (record.challengeId != null && record.challengeId!.isNotEmpty) {

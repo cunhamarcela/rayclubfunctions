@@ -6,7 +6,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/snackbar_helper.dart';
 import '../models/workout_record.dart';
-import '../repositories/workout_record_repository.dart';
+import '../providers/workout_providers.dart';
+import '../viewmodels/workout_history_view_model.dart';
 import '../../../core/providers/supabase_providers.dart';
 
 /// Modal para edição ou exclusão de um registro de treino
@@ -107,6 +108,10 @@ class _WorkoutEditModalState extends ConsumerState<WorkoutEditModal> {
         notes: widget.workoutRecord.notes,
       );
       
+      // Invalidar providers para forçar atualização
+      ref.invalidate(userWorkoutsProvider);
+      ref.invalidate(workoutHistoryViewModelProvider);
+      
       // Notificar sucesso
       if (mounted) {
         SnackbarHelper.showSuccess(
@@ -149,6 +154,10 @@ class _WorkoutEditModalState extends ConsumerState<WorkoutEditModal> {
         userId: widget.workoutRecord.userId,
         challengeId: widget.challengeId ?? '',
       );
+      
+      // Invalidar providers para forçar atualização
+      ref.invalidate(userWorkoutsProvider);
+      ref.invalidate(workoutHistoryViewModelProvider);
       
       // Notificar sucesso
       if (mounted) {

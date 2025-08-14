@@ -266,7 +266,7 @@ class _ChallengeCompletedScreenState extends ConsumerState<ChallengeCompletedScr
           ),
         ],
       ),
-      bottomNavigationBar: const SharedBottomNavigationBar(currentIndex: 4),
+      bottomNavigationBar: const SharedBottomNavigationBar(currentIndex: -1),
     );
   }
   

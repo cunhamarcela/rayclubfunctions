@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 // Project imports:
 import 'package:ray_club_app/core/errors/app_exception.dart';
 import 'package:ray_club_app/features/dashboard/models/dashboard_fitness_data.dart';
+import 'package:ray_club_app/features/dashboard/models/dashboard_period.dart';
 import 'package:ray_club_app/features/auth/viewmodels/auth_view_model.dart';
 
 /// Provider para o repositório do dashboard fitness
@@ -28,8 +29,12 @@ class DashboardFitnessRepository {
     required Ref ref,
   }) : _client = client, _ref = ref;
 
-  /// Busca dados completos do dashboard fitness
-  Future<DashboardFitnessData> getDashboardFitnessData({DateTime? month}) async {
+  /// Busca dados completos do dashboard fitness com suporte a filtros de período
+  Future<DashboardFitnessData> getDashboardFitnessData({
+    DateTime? month,
+    DashboardPeriod period = DashboardPeriod.thisMonth,
+    DateRange? customRange,
+  }) async {
     try {
       // Obter o usuário autenticado
       final authState = _ref.read(authViewModelProvider);
@@ -46,6 +51,74 @@ class DashboardFitnessRepository {
       }
 
       debugPrint('🏃‍♂️ Buscando dados do dashboard fitness para usuário: $userId');
+      debugPrint('🏃‍♂️ Período: ${period.displayName}');
+
+      // Calcula as datas baseado no período selecionado
+      final dateRange = period.calculateDateRange(customRange);
+      
+      debugPrint('📅 Range calculado: ${dateRange.formattedRange}');
+      debugPrint('📅 Início: ${dateRange.start.toIso8601String().split('T')[0]}');
+      debugPrint('📅 Fim: ${dateRange.end.toIso8601String().split('T')[0]}');
+
+      // Usar a função SQL com filtros de período
+      final response = await _client.rpc(
+        'get_dashboard_fitness_with_period',
+        params: {
+          'user_id_param': userId,
+          'start_date_param': dateRange.start.toIso8601String().split('T')[0],
+          'end_date_param': dateRange.end.toIso8601String().split('T')[0],
+        },
+      );
+
+      if (response == null) {
+        throw AppException(
+          message: 'Dados do dashboard não encontrados',
+          code: 'DATA_NOT_FOUND',
+        );
+      }
+
+      debugPrint('✅ Dados do dashboard fitness carregados com sucesso');
+      
+      // Converter a resposta para o modelo
+      return DashboardFitnessData.fromJson(response as Map<String, dynamic>);
+      
+    } on AppException {
+      rethrow;
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erro ao carregar dashboard fitness: $e');
+      
+      // Se a função com período não existir, tenta usar a função original
+      if (e.toString().contains('get_dashboard_fitness_with_period') || 
+          e.toString().contains('function') ||
+          e.toString().contains('does not exist')) {
+        debugPrint('🔄 Função com período não encontrada, usando função original...');
+        return await _getDashboardFitnessDataLegacy(month: month);
+      }
+      
+      throw AppException(
+        message: 'Erro ao carregar dados do dashboard',
+        code: 'LOAD_ERROR',
+        originalError: e,
+      );
+    }
+  }
+  
+  /// Busca dados do dashboard usando método legado (compatibilidade)
+  Future<DashboardFitnessData> _getDashboardFitnessDataLegacy({DateTime? month}) async {
+    try {
+      // Obter o usuário autenticado
+      final authState = _ref.read(authViewModelProvider);
+      final userId = authState.maybeWhen(
+        authenticated: (user) => user.id,
+        orElse: () => null,
+      );
+
+      if (userId == null) {
+        throw AppException(
+          message: 'Usuário não autenticado',
+          code: 'AUTH_ERROR',
+        );
+      }
 
       // Usar o mês atual se não for especificado
       final targetMonth = month ?? DateTime.now();
@@ -67,15 +140,13 @@ class DashboardFitnessRepository {
         );
       }
 
-      debugPrint('✅ Dados do dashboard fitness carregados com sucesso');
+      debugPrint('✅ Dados do dashboard fitness carregados com método legado');
       
       // Converter a resposta para o modelo
       return DashboardFitnessData.fromJson(response as Map<String, dynamic>);
       
-    } on AppException {
-      rethrow;
     } catch (e, stackTrace) {
-      debugPrint('❌ Erro ao carregar dashboard fitness: $e');
+      debugPrint('❌ Erro ao carregar dashboard fitness (legado): $e');
       throw AppException(
         message: 'Erro ao carregar dados do dashboard',
         code: 'LOAD_ERROR',

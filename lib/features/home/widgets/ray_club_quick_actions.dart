@@ -35,9 +35,9 @@ class RayClubQuickActions extends StatelessWidget {
           Expanded(
             child: _ActionCard(
               icon: Icons.emoji_events,
-              title: 'Desafio Ray 21',
+              title: 'Desafios',
               color: Colors.amber,
-              onTap: () => context.router.push(const ChallengesListRoute()),
+              onTap: () => context.router.push(const CardioRankingRoute()),
             ),
           ),
         ],

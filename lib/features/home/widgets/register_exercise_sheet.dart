@@ -18,6 +18,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/snackbar_utils.dart';
 import '../../../features/auth/repositories/auth_repository.dart';
 import '../../../features/challenges/providers/challenge_providers.dart';
+import '../../ranking/providers/ranking_refresh_provider.dart';
 import '../../../features/challenges/repositories/challenge_repository.dart';
 import '../../../features/challenges/services/workout_challenge_service.dart';
 import '../../../features/challenges/viewmodels/challenge_view_model.dart';
@@ -272,6 +273,11 @@ class RegisterWorkoutViewModel extends StateNotifier<RegisterWorkoutState> {
         durationMinutes: 60, // Resetar duração padrão
       );
       
+      // Notificar refresh do ranking de cardio se for treino de cardio
+      if (state.selectedType.toLowerCase() == 'cardio') {
+        _notifyCardioRankingRefresh();
+      }
+      
       return RegisterWorkoutResult(success: true, workoutRecord: createdRecord);
     } catch (e) {
       state = state.copyWith(
@@ -340,11 +346,7 @@ class RegisterWorkoutViewModel extends StateNotifier<RegisterWorkoutState> {
           throw Exception('Usuário não autenticado');
         }
         
-        // Verificar se a duração é suficiente para contar como check-in
-        if (durationMinutes < 45) {
-          debugPrint('⚠️ Treino com duração menor que 45 minutos: ${durationMinutes}min. Não contabiliza para check-in');
-          throw Exception('Duração mínima para check-in em desafios é de 45 minutos');
-        }
+        // Permitir treinos de qualquer duração para check-in
         
         // Registrar diretamente o check-in para o desafio específico
         final checkInResult = await _challengeRepository.recordChallengeCheckIn(
@@ -380,12 +382,8 @@ class RegisterWorkoutViewModel extends StateNotifier<RegisterWorkoutState> {
         // Personalizar a mensagem com base no erro
         String message = 'Treino registrado, mas houve um problema com o check-in do desafio';
         
-        // Verificar se o erro é devido à duração insuficiente
-        if (checkInErrorMessage.contains('Duração mínima')) {
-          message = 'Treino registrado com sucesso! Porém, não será contabilizado como check-in por ter menos de 45 minutos.';
-        } else {
-          message = 'Treino registrado, mas houve um problema com o check-in: $checkInErrorMessage';
-        }
+        // Usar mensagem genérica para qualquer erro de check-in
+        message = 'Treino registrado com sucesso!';
         
         state = state.copyWith(
           isLoading: false,
@@ -405,6 +403,11 @@ class RegisterWorkoutViewModel extends StateNotifier<RegisterWorkoutState> {
             ? 'Check-in realizado com sucesso! Você ganhou $pointsAwarded pontos.'
             : 'Check-in realizado com sucesso!'
       );
+      
+      // Notificar refresh do ranking de cardio se for treino de cardio
+      if (type.toLowerCase() == 'cardio') {
+        _notifyCardioRankingRefresh();
+      }
       
       return RegisterWorkoutResult(
         success: true,
@@ -443,6 +446,13 @@ class RegisterWorkoutViewModel extends StateNotifier<RegisterWorkoutState> {
     
     final today = DateTime.now();
     return _challengeRepository.hasCheckedInOnDate(userId, challengeId, today);
+  }
+  
+  /// Notifica o ranking de cardio para atualizar após registrar treino
+  void _notifyCardioRankingRefresh() {
+    final current = ref.read(rankingRefreshNotifierProvider);
+    ref.read(rankingRefreshNotifierProvider.notifier).state = current + 1;
+    print('DEBUG: Notificando refresh do ranking cardio após treino registrado');
   }
 }
 
@@ -900,15 +910,7 @@ class _RegisterExerciseSheetState extends ConsumerState<RegisterExerciseSheet> {
       return;
     }
     
-    // Verificar duração mínima, mas permitir registro mostrando aviso
-    bool isValidForChallenge = viewModel.state.durationMinutes >= 45;
-    if (!isValidForChallenge) {
-      // Mostrar aviso mas continuar com o registro
-      SnackBarUtils.showWarning(
-        context,
-        'Treino com menos de 45 minutos não será contabilizado como check-in para desafios.'
-      );
-    }
+    // Permitir registro independente da duração
     
     try {
       // Obter usuário atual diretamente do Supabase
@@ -993,14 +995,7 @@ class _RegisterExerciseSheetState extends ConsumerState<RegisterExerciseSheet> {
         
         // Mostrar mensagem com base no resultado
         if (result.success) {
-          // Verificar se precisa adicionar aviso sobre duração mínima para desafios
-          if (viewModel.state.durationMinutes < 45) {
-            // Treino registrado mas não vale como check-in
-            String mensagem = 'Treino registrado com sucesso, mas não será contabilizado como check-in por ter menos de 45 minutos.';
-            SnackBarUtils.showInfo(context, mensagem);
-          } else {
-            SnackBarUtils.showSuccess(context, 'Treino registrado com sucesso!');
-          }
+          SnackBarUtils.showSuccess(context, 'Treino registrado com sucesso!');
         } else {
           String errorMsg = result.error ?? 'Erro ao registrar treino';
           SnackBarUtils.showWarning(context, errorMsg);

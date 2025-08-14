@@ -18,6 +18,7 @@ class RecipeFilter with _$RecipeFilter {
 
 /// Categorias de filtros baseadas no documento da Bruna Braga
 enum RecipeFilterCategory {
+  favoritas,    // Receitas favoritas do usuário
   objetivo,     // Emagrecimento, Hipertrofia
   paladar,      // Doce, Salgado
   refeicao,     // Café da Manhã, Almoço, Jantar, etc.
@@ -42,6 +43,9 @@ class RecipeFilterState with _$RecipeFilterState {
 /// Classe com os filtros reais extraídos do documento da Bruna Braga
 class BrunaRecipeFilters {
   static const Map<RecipeFilterCategory, List<String>> filtersByCategory = {
+    RecipeFilterCategory.favoritas: [
+      'Minhas Favoritas',
+    ],
     RecipeFilterCategory.objetivo: [
       'Emagrecimento',
       'Hipertrofia',
@@ -103,6 +107,8 @@ class BrunaRecipeFilters {
   /// Obtém nome legível da categoria
   static String getCategoryDisplayName(RecipeFilterCategory category) {
     switch (category) {
+      case RecipeFilterCategory.favoritas:
+        return 'Favoritas';
       case RecipeFilterCategory.objetivo:
         return 'Objetivo';
       case RecipeFilterCategory.paladar:
@@ -121,10 +127,12 @@ class BrunaRecipeFilters {
   /// Obtém ícone da categoria
   static String getCategoryIcon(RecipeFilterCategory category) {
     switch (category) {
+      case RecipeFilterCategory.favoritas:
+        return '💖';
       case RecipeFilterCategory.objetivo:
         return '🎯';
       case RecipeFilterCategory.paladar:
-        return '👅';
+        return '🫶';
       case RecipeFilterCategory.refeicao:
         return '🍽️';
       case RecipeFilterCategory.timing:

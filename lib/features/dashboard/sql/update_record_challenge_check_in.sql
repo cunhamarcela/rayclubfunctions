@@ -21,7 +21,7 @@ DECLARE
     points_to_add INTEGER := COALESCE(_points, 10);
     result JSONB;
     workout_record_id UUID;
-    is_valid_for_challenge BOOLEAN := _duration_minutes >= 45;
+    is_valid_for_challenge BOOLEAN := TRUE; -- Aceitar treinos de qualquer duração
     check_ins_count INTEGER := 0;
     
     -- Nova variável para armazenar UUID

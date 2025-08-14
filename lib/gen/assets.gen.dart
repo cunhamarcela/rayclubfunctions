@@ -152,6 +152,15 @@ class $AssetsIconsGen {
 class $AssetsImagesGen {
   const $AssetsImagesGen();
 
+  /// File path: assets/images/1.png
+  AssetGenImage get a1 => const AssetGenImage('assets/images/1.png');
+
+  /// File path: assets/images/2.png
+  AssetGenImage get a2 => const AssetGenImage('assets/images/2.png');
+
+  /// File path: assets/images/3.png
+  AssetGenImage get a3 => const AssetGenImage('assets/images/3.png');
+
   /// File path: assets/images/34.jpg
   AssetGenImage get a34 => const AssetGenImage('assets/images/34.jpg');
 
@@ -196,6 +205,10 @@ class $AssetsImagesGen {
   AssetGenImage get whatsAppImage20250605At203712 => const AssetGenImage(
       'assets/images/WhatsApp Image 2025-06-05 at 20.37.12.jpeg');
 
+  /// File path: assets/images/WhatsApp Image 2025-07-21 at 21.22.20.jpeg
+  AssetGenImage get whatsAppImage20250721At212220 => const AssetGenImage(
+      'assets/images/WhatsApp Image 2025-07-21 at 21.22.20.jpeg');
+
   /// File path: assets/images/art_bodyweight.jpg
   AssetGenImage get artBodyweight =>
       const AssetGenImage('assets/images/art_bodyweight.jpg');
@@ -232,6 +245,10 @@ class $AssetsImagesGen {
   AssetGenImage get challengeDefault =>
       const AssetGenImage('assets/images/challenge_default.jpg');
 
+  /// File path: assets/images/evento09.jpeg
+  AssetGenImage get evento09 =>
+      const AssetGenImage('assets/images/evento09.jpeg');
+
   /// File path: assets/images/fisio.jpg
   AssetGenImage get fisio => const AssetGenImage('assets/images/fisio.jpg');
 
@@ -256,6 +273,9 @@ class $AssetsImagesGen {
 
   /// List of all assets
   List<dynamic> get values => [
+        a1,
+        a2,
+        a3,
         a34,
         a4E7A0469,
         a4E7A0478,
@@ -268,6 +288,7 @@ class $AssetsImagesGen {
         readmeArtImages,
         whatsAppImage20250322At231608,
         whatsAppImage20250605At203712,
+        whatsAppImage20250721At212220,
         artBodyweight,
         artHiit,
         artOffice,
@@ -276,6 +297,7 @@ class $AssetsImagesGen {
         artYoga,
         bannerBemvindo,
         challengeDefault,
+        evento09,
         fisio,
         pilates,
         workoutDefault
@@ -504,183 +526,24 @@ class $AssetsImagesWorkoutsGen {
 class $AssetsImagesLogosAppGen {
   const $AssetsImagesLogosAppGen();
 
-  /// File path: assets/images/logos/app/1.png
-  AssetGenImage get a1 => const AssetGenImage('assets/images/logos/app/1.png');
-
   /// File path: assets/images/logos/app/IMG_2426.MOV
   String get img2426 => 'assets/images/logos/app/IMG_2426.MOV';
-
-  /// File path: assets/images/logos/app/Ray Club-0.png
-  AssetGenImage get rayClub0 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-0.png');
-
-  /// File path: assets/images/logos/app/Ray Club-1.png
-  AssetGenImage get rayClub1 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-1.png');
-
-  /// File path: assets/images/logos/app/Ray Club-10.png
-  AssetGenImage get rayClub10 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-10.png');
-
-  /// File path: assets/images/logos/app/Ray Club-11.png
-  AssetGenImage get rayClub11 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-11.png');
-
-  /// File path: assets/images/logos/app/Ray Club-13.png
-  AssetGenImage get rayClub13 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-13.png');
-
-  /// File path: assets/images/logos/app/Ray Club-14.png
-  AssetGenImage get rayClub14 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-14.png');
-
-  /// File path: assets/images/logos/app/Ray Club-15.png
-  AssetGenImage get rayClub15 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-15.png');
-
-  /// File path: assets/images/logos/app/Ray Club-16.png
-  AssetGenImage get rayClub16 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-16.png');
-
-  /// File path: assets/images/logos/app/Ray Club-17.png
-  AssetGenImage get rayClub17 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-17.png');
-
-  /// File path: assets/images/logos/app/Ray Club-18.png
-  AssetGenImage get rayClub18 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-18.png');
-
-  /// File path: assets/images/logos/app/Ray Club-2.png
-  AssetGenImage get rayClub2 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-2.png');
-
-  /// File path: assets/images/logos/app/Ray Club-20.png
-  AssetGenImage get rayClub20 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-20.png');
-
-  /// File path: assets/images/logos/app/Ray Club-22.png
-  AssetGenImage get rayClub22 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-22.png');
-
-  /// File path: assets/images/logos/app/Ray Club-23.png
-  AssetGenImage get rayClub23 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-23.png');
 
   /// File path: assets/images/logos/app/Ray Club-25.png
   AssetGenImage get rayClub25 =>
       const AssetGenImage('assets/images/logos/app/Ray Club-25.png');
 
-  /// File path: assets/images/logos/app/Ray Club-26.png
-  AssetGenImage get rayClub26 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-26.png');
-
-  /// File path: assets/images/logos/app/Ray Club-27.png
-  AssetGenImage get rayClub27 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-27.png');
-
-  /// File path: assets/images/logos/app/Ray Club-28.png
-  AssetGenImage get rayClub28 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-28.png');
-
-  /// File path: assets/images/logos/app/Ray Club-29.png
-  AssetGenImage get rayClub29 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-29.png');
-
-  /// File path: assets/images/logos/app/Ray Club-3.png
-  AssetGenImage get rayClub3 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-3.png');
-
-  /// File path: assets/images/logos/app/Ray Club-30.png
-  AssetGenImage get rayClub30 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-30.png');
-
-  /// File path: assets/images/logos/app/Ray Club-4.png
-  AssetGenImage get rayClub4 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-4.png');
-
-  /// File path: assets/images/logos/app/Ray Club-5.png
-  AssetGenImage get rayClub5 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-5.png');
-
-  /// File path: assets/images/logos/app/Ray Club-6.png
-  AssetGenImage get rayClub6 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-6.png');
-
-  /// File path: assets/images/logos/app/Ray Club-7.png
-  AssetGenImage get rayClub7 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-7.png');
-
-  /// File path: assets/images/logos/app/Ray Club-8.png
-  AssetGenImage get rayClub8 =>
-      const AssetGenImage('assets/images/logos/app/Ray Club-8.png');
-
-  /// File path: assets/images/logos/app/back.png
-  AssetGenImage get back =>
-      const AssetGenImage('assets/images/logos/app/back.png');
-
   /// File path: assets/images/logos/app/check.png
   AssetGenImage get check =>
       const AssetGenImage('assets/images/logos/app/check.png');
-
-  /// File path: assets/images/logos/app/check_1.png
-  AssetGenImage get check1 =>
-      const AssetGenImage('assets/images/logos/app/check_1.png');
-
-  /// File path: assets/images/logos/app/check_2.png
-  AssetGenImage get check2 =>
-      const AssetGenImage('assets/images/logos/app/check_2.png');
-
-  /// File path: assets/images/logos/app/check_6.png
-  AssetGenImage get check6 =>
-      const AssetGenImage('assets/images/logos/app/check_6.png');
-
-  /// File path: assets/images/logos/app/check_7.png
-  AssetGenImage get check7 =>
-      const AssetGenImage('assets/images/logos/app/check_7.png');
 
   /// File path: assets/images/logos/app/check_8.png
   AssetGenImage get check8 =>
       const AssetGenImage('assets/images/logos/app/check_8.png');
 
-  /// File path: assets/images/logos/app/design.png
-  AssetGenImage get design =>
-      const AssetGenImage('assets/images/logos/app/design.png');
-
-  /// File path: assets/images/logos/app/gradiente5.png
-  AssetGenImage get gradiente5 =>
-      const AssetGenImage('assets/images/logos/app/gradiente5.png');
-
-  /// File path: assets/images/logos/app/gradientes_1.png
-  AssetGenImage get gradientes1 =>
-      const AssetGenImage('assets/images/logos/app/gradientes_1.png');
-
-  /// File path: assets/images/logos/app/gradientes_10.png
-  AssetGenImage get gradientes10 =>
-      const AssetGenImage('assets/images/logos/app/gradientes_10.png');
-
-  /// File path: assets/images/logos/app/gradientes_2.png
-  AssetGenImage get gradientes2 =>
-      const AssetGenImage('assets/images/logos/app/gradientes_2.png');
-
-  /// File path: assets/images/logos/app/gradientes_3.png
-  AssetGenImage get gradientes3 =>
-      const AssetGenImage('assets/images/logos/app/gradientes_3.png');
-
-  /// File path: assets/images/logos/app/gradientes_4.png
-  AssetGenImage get gradientes4 =>
-      const AssetGenImage('assets/images/logos/app/gradientes_4.png');
-
-  /// File path: assets/images/logos/app/gradientes_6.png
-  AssetGenImage get gradientes6 =>
-      const AssetGenImage('assets/images/logos/app/gradientes_6.png');
-
   /// File path: assets/images/logos/app/gradientes_7.png
   AssetGenImage get gradientes7 =>
       const AssetGenImage('assets/images/logos/app/gradientes_7.png');
-
-  /// File path: assets/images/logos/app/gradientes_8.png
-  AssetGenImage get gradientes8 =>
-      const AssetGenImage('assets/images/logos/app/gradientes_8.png');
 
   /// File path: assets/images/logos/app/gradientes_9.png
   AssetGenImage get gradientes9 =>
@@ -694,145 +557,41 @@ class $AssetsImagesLogosAppGen {
   AssetGenImage get headerdesafio =>
       const AssetGenImage('assets/images/logos/app/headerdesafio.png');
 
-  /// File path: assets/images/logos/app/logo principal_9.png
-  AssetGenImage get logoPrincipal9 =>
-      const AssetGenImage('assets/images/logos/app/logo principal_9.png');
-
   /// File path: assets/images/logos/app/logocirculo.png
   AssetGenImage get logocirculo =>
       const AssetGenImage('assets/images/logos/app/logocirculo.png');
-
-  /// File path: assets/images/logos/app/logologin.png
-  AssetGenImage get logologin =>
-      const AssetGenImage('assets/images/logos/app/logologin.png');
-
-  /// File path: assets/images/logos/app/logologin0.png
-  AssetGenImage get logologin0 =>
-      const AssetGenImage('assets/images/logos/app/logologin0.png');
-
-  /// File path: assets/images/logos/app/logologo.png
-  AssetGenImage get logologo =>
-      const AssetGenImage('assets/images/logos/app/logologo.png');
-
-  /// File path: assets/images/logos/app/logowhite.png
-  AssetGenImage get logowhite =>
-      const AssetGenImage('assets/images/logos/app/logowhite.png');
 
   /// File path: assets/images/logos/app/novaheader.png
   AssetGenImage get novaheader =>
       const AssetGenImage('assets/images/logos/app/novaheader.png');
 
-  /// File path: assets/images/logos/app/oi.png
-  AssetGenImage get oi => const AssetGenImage('assets/images/logos/app/oi.png');
+  /// File path: assets/images/logos/app/projeto 7 dias 2.png
+  AssetGenImage get projeto7Dias2 =>
+      const AssetGenImage('assets/images/logos/app/projeto 7 dias 2.png');
 
-  /// File path: assets/images/logos/app/padronagem_5.png
-  AssetGenImage get padronagem5 =>
-      const AssetGenImage('assets/images/logos/app/padronagem_5.png');
+  /// File path: assets/images/logos/app/projeto 7 dias 3.png
+  AssetGenImage get projeto7Dias3 =>
+      const AssetGenImage('assets/images/logos/app/projeto 7 dias 3.png');
 
-  /// File path: assets/images/logos/app/r club.png
-  AssetGenImage get rClub =>
-      const AssetGenImage('assets/images/logos/app/r club.png');
-
-  /// File path: assets/images/logos/app/r club_1.png
-  AssetGenImage get rClub1 =>
-      const AssetGenImage('assets/images/logos/app/r club_1.png');
-
-  /// File path: assets/images/logos/app/r club_5.png
-  AssetGenImage get rClub5 =>
-      const AssetGenImage('assets/images/logos/app/r club_5.png');
-
-  /// File path: assets/images/logos/app/r club_6.png
-  AssetGenImage get rClub6 =>
-      const AssetGenImage('assets/images/logos/app/r club_6.png');
-
-  /// File path: assets/images/logos/app/ray 21.png
-  AssetGenImage get ray21 =>
-      const AssetGenImage('assets/images/logos/app/ray 21.png');
-
-  /// File path: assets/images/logos/app/ray 21_3.png
-  AssetGenImage get ray213 =>
-      const AssetGenImage('assets/images/logos/app/ray 21_3.png');
-
-  /// File path: assets/images/logos/app/ray 21_5.png
-  AssetGenImage get ray215 =>
-      const AssetGenImage('assets/images/logos/app/ray 21_5.png');
-
-  /// File path: assets/images/logos/app/ray 21_8.png
-  AssetGenImage get ray218 =>
-      const AssetGenImage('assets/images/logos/app/ray 21_8.png');
-
-  /// File path: assets/images/logos/app/ray_club_secundary.png
-  AssetGenImage get rayClubSecundary =>
-      const AssetGenImage('assets/images/logos/app/ray_club_secundary.png');
+  /// File path: assets/images/logos/app/projeto 7 dias.png
+  AssetGenImage get projeto7Dias =>
+      const AssetGenImage('assets/images/logos/app/projeto 7 dias.png');
 
   /// List of all assets
   List<dynamic> get values => [
-        a1,
         img2426,
-        rayClub0,
-        rayClub1,
-        rayClub10,
-        rayClub11,
-        rayClub13,
-        rayClub14,
-        rayClub15,
-        rayClub16,
-        rayClub17,
-        rayClub18,
-        rayClub2,
-        rayClub20,
-        rayClub22,
-        rayClub23,
         rayClub25,
-        rayClub26,
-        rayClub27,
-        rayClub28,
-        rayClub29,
-        rayClub3,
-        rayClub30,
-        rayClub4,
-        rayClub5,
-        rayClub6,
-        rayClub7,
-        rayClub8,
-        back,
         check,
-        check1,
-        check2,
-        check6,
-        check7,
         check8,
-        design,
-        gradiente5,
-        gradientes1,
-        gradientes10,
-        gradientes2,
-        gradientes3,
-        gradientes4,
-        gradientes6,
         gradientes7,
-        gradientes8,
         gradientes9,
         header,
         headerdesafio,
-        logoPrincipal9,
         logocirculo,
-        logologin,
-        logologin0,
-        logologo,
-        logowhite,
         novaheader,
-        oi,
-        padronagem5,
-        rClub,
-        rClub1,
-        rClub5,
-        rClub6,
-        ray21,
-        ray213,
-        ray215,
-        ray218,
-        rayClubSecundary
+        projeto7Dias2,
+        projeto7Dias3,
+        projeto7Dias
       ];
 }
 

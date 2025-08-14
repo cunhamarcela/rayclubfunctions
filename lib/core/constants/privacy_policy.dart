@@ -7,7 +7,7 @@ class PrivacyPolicy {
   static const String title = 'Política de Privacidade';
 
   /// Data da última atualização
-  static const String lastUpdated = '01 de Abril de 2025';
+  static const String lastUpdated = '21 de Janeiro de 2025';
 
   /// Conteúdo completo da política de privacidade
   static const String content = '''
@@ -15,119 +15,168 @@ class PrivacyPolicy {
 
 **Última Atualização:** $lastUpdated
 
-## 1. Introdução
+A sua privacidade é importante para nós. Esta Política de Privacidade explica como coletamos, usamos, armazenamos e protegemos seus dados ao utilizar o aplicativo Ray Club.
 
-O Ray Club ("nós", "nosso" ou "aplicativo") está comprometido em proteger sua privacidade. Esta Política de Privacidade explica como coletamos, usamos, divulgamos e protegemos suas informações quando você utiliza nosso aplicativo móvel.
+## 1. Informações Coletadas
 
-## 2. Informações que Coletamos
+Coletamos apenas as informações necessárias para o funcionamento adequado do aplicativo:
 
-### 2.1 Informações Fornecidas pelo Usuário
-- Informações de cadastro (nome, e-mail, senha)
-- Dados de perfil (foto, altura, peso, objetivos de fitness)
-- Registros de treinos e atividades físicas
-- Informações sobre nutrição e dieta
-- Progressos e metas de condicionamento físico
-- Participação em desafios e competições
+### 1.1 Dados de Cadastro:
+- Nome, e-mail, data de nascimento, gênero e perfil do Instagram
+- Informações de perfil (altura, peso, objetivos de fitness)
+- Foto de perfil (opcional)
 
-### 2.2 Informações Coletadas Automaticamente
-- Dados de uso do aplicativo
-- Informações do dispositivo (modelo, sistema operacional, idioma)
-- Dados de localização (apenas quando estritamente necessário e com sua permissão explícita)
-- Fotos (quando permitido para registro de progresso)
-- Métricas de desempenho (para análise de progressão nos treinos)
+### 1.2 Dados de Uso:
+- Treinos registrados, progresso em desafios, grupos criados e interações no app
+- Preferências alimentares e registros nutricionais
+- Dados de progresso e metas de condicionamento físico
 
-## 3. Como Usamos Suas Informações
+### 1.3 Informações de Dispositivo:
+- Tipo de dispositivo, sistema operacional e identificadores de dispositivo
+- Dados de uso do aplicativo para análise e melhorias
+
+### 1.4 Dados de Login:
+- Informações de autenticação via e-mail, Google ou Apple
+- Dados de sessão para manter você conectado
+
+## 2. Permissões do Aplicativo
+
+### 2.1 Permissão de Câmera (Android):
+**⚠️ IMPORTANTE**: Esta permissão é **TOTALMENTE OPCIONAL**. Você pode usar todas as funcionalidades principais do app sem conceder acesso à câmera.
+
+Solicitamos acesso à câmera especificamente para:
+- **Foto de perfil**: Permitir que você personalize seu perfil com uma foto
+- **Registro de progresso**: Capturar fotos "antes e depois" para acompanhar sua evolução física
+- **Documentação nutricional**: Fotografar refeições para acompanhamento alimentar
+- **Código QR/Barras**: Digitalizar códigos para cupons e benefícios exclusivos
+
+### 2.2 Outras Permissões:
+- **Internet**: Para sincronizar seus dados e acessar conteúdos do app
+- **Armazenamento**: Para salvar dados localmente no dispositivo
+- **Notificações**: Para lembretes de treinos e motivação (opcional)
+
+## 3. Finalidade da Coleta
 
 Utilizamos suas informações para:
-- Fornecer, personalizar e melhorar nossos serviços
-- Processar e gerenciar sua conta
-- Oferecer treinos e planos de nutrição personalizados
-- Permitir sua participação em desafios e programas de incentivo
-- Comunicar-nos com você sobre atualizações, novidades e conquistas
-- Análise e melhoria contínua do aplicativo
-- Enviar notificações sobre treinos, novas funcionalidades ou benefícios (com sua permissão)
+- Permitir o login e a identificação segura do usuário
+- Gerenciar treinos, rankings, desafios e grupos dentro do app
+- Personalizar a sua experiência de bem-estar
+- Fornecer planos de treino e nutrição adequados ao seu perfil
+- Melhorar a performance, corrigir erros e otimizar funcionalidades do aplicativo
+- Eventualmente, enviar notificações importantes sobre atualizações ou mudanças no app
+- Garantir a segurança e funcionamento adequado do aplicativo
 
-## 4. Compartilhamento de Informações
+## 4. Compartilhamento de Dados
 
-Podemos compartilhar suas informações com:
-- Provedores de serviços terceirizados que nos auxiliam na operação do aplicativo
-- Parceiros que oferecem benefícios e descontos através do aplicativo
-- Autoridades governamentais quando exigido por lei
-- Outros participantes de desafios (apenas informações limitadas como nome e progresso)
+**Não vendemos, alugamos ou compartilhamos seus dados pessoais com terceiros para fins comerciais**, exceto:
+- Quando necessário para operação do serviço (por exemplo, Supabase para banco de dados)
+- Quando exigido por lei ou processo judicial
+- Com seu consentimento explícito
+- Informações limitadas em desafios (apenas nome e progresso, se você participar voluntariamente)
 
-Não vendemos ou alugamos suas informações pessoais a terceiros para fins de marketing.
+Todos os parceiros de tecnologia são selecionados rigorosamente e seguem padrões elevados de segurança.
 
-## 5. Segurança de Dados
+## 5. Armazenamento e Segurança
 
-Implementamos medidas técnicas e organizacionais apropriadas para proteger suas informações contra acesso não autorizado, alteração, divulgação ou destruição, incluindo:
-- Criptografia de dados sensíveis
-- Armazenamento seguro com Supabase
-- Acesso restrito a informações pessoais
-- Monitoramento regular de nossos sistemas
+- Seus dados são armazenados com segurança em servidores protegidos e criptografados
+- Aplicamos práticas recomendadas de segurança para proteger suas informações contra acesso não autorizado, alteração, divulgação ou destruição
+- Utilizamos criptografia SSL/TLS para transmissão de dados
+- Acesso restrito aos dados por nossa equipe autorizada
+- Monitoramento contínuo de segurança
 
-## 6. Seus Direitos
+## 6. Retenção de Dados
+
+- Mantemos seus dados enquanto sua conta estiver ativa
+- Dados podem ser mantidos por até 30 dias após exclusão da conta para backup de segurança
+- Dados anônimos podem ser mantidos para melhorias do serviço
+- Fotos são excluídas imediatamente quando você remove da conta
+
+## 7. Direitos do Usuário
 
 Você tem o direito de:
-- Acessar e atualizar suas informações pessoais
-- Solicitar a exclusão de seus dados
-- Opor-se ao processamento de seus dados
-- Retirar seu consentimento a qualquer momento
-- Solicitar a portabilidade de seus dados
-- Apresentar uma reclamação a uma autoridade de proteção de dados
+- Acessar, corrigir ou excluir seus dados pessoais
+- Revogar o consentimento a qualquer momento
+- Solicitar informações sobre como tratamos seus dados
+- Exportar seus dados em formato legível
+- Ser informado sobre o uso dos seus dados
 
-## 7. Uso da Câmera e Galeria de Fotos
+Para exercer seus direitos, envie uma solicitação para: marcela@brius.com.br
 
-O aplicativo solicita acesso à câmera e galeria de fotos para:
-- Permitir que você atualize sua foto de perfil
-- Registrar seu progresso físico através de fotos "antes e depois"
-- Compartilhar imagens relacionadas aos seus treinos e conquistas
-- Digitalizar códigos QR para cupons e benefícios exclusivos
+**Prazo de resposta**: Até 15 dias úteis conforme legislação vigente
 
-Estas permissões são opcionais e você pode usar grande parte do aplicativo sem concedê-las.
+## 8. Menores de Idade
 
-## 8. Rastreamento do Usuário
+Nosso aplicativo é destinado a usuários maiores de 13 anos. Não coletamos intencionalmente informações de menores de 13 anos. Se descobrirmos que coletamos dados de menores inadvertidamente, tomaremos medidas para excluí-los imediatamente.
 
-Utilizamos tecnologias de rastreamento para melhorar a experiência do usuário e entender como nosso aplicativo é utilizado. Isto nos ajuda a:
-- Personalizar conteúdo baseado em seu uso anterior
-- Analisar quais recursos são mais úteis
-- Identificar e corrigir problemas técnicos
-- Melhorar a eficácia dos nossos programas de treino
+## 9. Transferência Internacional
 
-Você pode gerenciar suas preferências de rastreamento nas configurações do aplicativo ou do dispositivo.
+Seus dados podem ser processados em servidores localizados fora do Brasil. Garantimos que todos os provedores seguem padrões adequados de proteção de dados compatíveis com a LGPD e outras regulamentações aplicáveis.
 
-## 9. Uso de Notificações
+## 10. Serviços Terceirizados
 
-Enviamos notificações para:
-- Lembretes de treinos agendados
-- Atualizações sobre desafios e competições
-- Novos benefícios disponíveis
-- Dicas de nutrição e bem-estar
+Utilizamos os seguintes serviços para operação do aplicativo:
+- **Supabase**: Banco de dados e autenticação (criptografado)
+- **Sentry**: Monitoramento de erros e performance
+- **Google Play Services**: Funcionalidades essenciais do Android
+- **Apple Services**: Funcionalidades essenciais do iOS
 
-Você pode gerenciar suas preferências de notificação nas configurações do aplicativo.
+## 11. Consentimento
 
-## 10. Armazenamento e Transferência Internacional de Dados
+Ao usar o Ray Club, você concorda com a coleta e o uso de informações de acordo com esta Política de Privacidade.
 
-Seus dados podem ser armazenados e processados em servidores localizados fora do seu país de residência, onde as leis de proteção de dados podem diferir. Ao usar nosso aplicativo, você concorda com essa transferência de informações. Tomamos medidas para garantir que seus dados recebam um nível adequado de proteção onde quer que sejam processados.
+## 12. Alterações na Política
 
-## 11. Crianças
+Reservamo-nos o direito de modificar esta Política de Privacidade a qualquer momento. Notificaremos você sobre mudanças significativas através do próprio aplicativo ou pelo e-mail cadastrado com pelo menos 30 dias de antecedência.
 
-Nosso aplicativo não é destinado a menores de 13 anos, e não coletamos intencionalmente informações pessoais de crianças menores de 13 anos. Se você é pai ou responsável e acredita que seu filho nos forneceu informações pessoais, entre em contato conosco para que possamos tomar as medidas necessárias.
+A nova política entrará em vigor após o período de notificação.
 
-## 12. Alterações a Esta Política
+## 13. Base Legal para Tratamento (LGPD)
 
-Podemos atualizar esta Política de Privacidade periodicamente. Recomendamos que você revise esta política regularmente para estar ciente de quaisquer alterações. Notificaremos você sobre alterações significativas através do aplicativo ou por e-mail.
+Processamos seus dados com base em:
+- **Consentimento**: Para funcionalidades opcionais (câmera, notificações)
+- **Execução de contrato**: Para fornecer os serviços do app
+- **Interesse legítimo**: Para melhorias e segurança do serviço
+- **Cumprimento legal**: Quando exigido por lei
 
-## 13. Contato
+## 14. Contato
 
-Se você tiver dúvidas sobre esta Política de Privacidade, entre em contato conosco pelo e-mail: privacy@rayclub.com
+Se você tiver dúvidas sobre esta Política de Privacidade, entre em contato:
+
+📧 **E-mail**: marcela@brius.com.br  
+🏢 **Empresa responsável**: Ray Club LTDA  
+🌍 **Desenvolvedor**: Ray Club Team  
+
+## 15. Conformidade Legal
+
+Esta política está em conformidade com:
+- Lei Geral de Proteção de Dados (LGPD - Lei 13.709/2018)
+- Marco Civil da Internet (Lei 12.965/2014)
+- Regulamentações da Google Play Store
+- Diretrizes da Apple App Store
+
+---
+
+**Versão**: 3.0  
+**Aplicável**: Brasil e territórios onde o app está disponível  
+**Idiomas**: Português (Brasil)
+
+*Ao utilizar o Ray Club, você declara ter lido e concordado com esta Política de Privacidade.*
 ''';
 
   /// Versão resumida da política para exibição em diálogos
   static const String shortVersion = '''
-O Ray Club coleta dados como perfil, treinos, nutrição e fotos para fornecer serviços personalizados. 
-Utilizamos a câmera e galeria para registro de progresso e perfil. 
-Também coletamos dados de uso para melhorar a experiência e permitir sua participação em desafios.
-Seus dados são protegidos e não são vendidos a terceiros para marketing.
-Você tem controle sobre suas permissões e pode gerenciar preferências no app.
+O Ray Club coleta dados como perfil, treinos, nutrição e fotos (opcional) para fornecer serviços personalizados de fitness e bem-estar.
+
+🔐 PERMISSÃO DE CÂMERA (Android): Usada para fotos de perfil, registro de progresso físico e documentação de refeições. É TOTALMENTE OPCIONAL - você pode usar todo o app sem ela.
+
+📊 DADOS COLETADOS: Nome, e-mail, perfil, progresso em treinos, preferências alimentares e dados de uso do app.
+
+🛡️ SEGURANÇA: Seus dados são criptografados e protegidos. NÃO vendemos informações para terceiros.
+
+⚖️ SEUS DIREITOS: Você pode acessar, corrigir, excluir ou exportar seus dados a qualquer momento.
+
+📧 CONTATO: marcela@brius.com.br
+
+Esta política está em conformidade com LGPD, Google Play e Apple App Store.
 ''';
 } 

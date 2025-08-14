@@ -98,6 +98,10 @@ BEGIN
                 WHEN p_category IN ('yoga', 'alongamento') THEN 90 -- 1.5 horas  
                 WHEN p_category IN ('funcional', 'crossfit') THEN 60 -- 1 hora
                 WHEN p_category IN ('natacao', 'ciclismo') THEN 100 -- 1h40
+                WHEN p_category = 'forca' THEN 90 -- 1.5 horas para força
+                WHEN p_category = 'fisioterapia' THEN 60 -- 1 hora para fisio
+                WHEN p_category = 'flexibilidade' THEN 45 -- 45 min para flexibilidade
+                WHEN p_category = 'projeto_7_dias' THEN 210 -- 7 dias × 30 min
                 ELSE 90 -- Padrão geral: 1.5 horas
             END;
         END IF;

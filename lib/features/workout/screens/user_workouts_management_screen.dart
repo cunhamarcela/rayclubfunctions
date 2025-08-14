@@ -10,6 +10,7 @@ import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/router/app_router.dart';
 import '../models/workout_record.dart';
 import '../viewmodels/workout_history_view_model.dart';
+import '../providers/workout_providers.dart';
 import '../widgets/workout_edit_modal.dart';
 import '../../home/widgets/register_exercise_sheet.dart';
 import '../../../core/providers/auth_provider.dart';
@@ -155,9 +156,9 @@ class _UserWorkoutsManagementScreenState extends ConsumerState<UserWorkoutsManag
     );
   }
 
-  Widget _buildWorkoutsList(dynamic workoutState) {
-    return workoutState.when(
-      loaded: (allRecords, selectedDate, selectedDateRecords) {
+  Widget _buildWorkoutsList(WorkoutHistoryState workoutState) {
+    return switch (workoutState) {
+      WorkoutHistoryLoaded(:final allRecords) => () {
         final filteredRecords = _filterWorkouts(allRecords);
         
         if (filteredRecords.isEmpty) {
@@ -177,12 +178,11 @@ class _UserWorkoutsManagementScreenState extends ConsumerState<UserWorkoutsManag
             },
           ),
         );
-      },
-      loading: () => const Center(child: LoadingIndicator()),
-      error: (message) => _buildErrorView(message),
-      empty: () => _buildEmptyState(),
-      orElse: () => _buildEmptyState(),
-    );
+      }(),
+      WorkoutHistoryLoading() => const Center(child: LoadingIndicator()),
+      WorkoutHistoryError(:final message) => _buildErrorView(message),
+      WorkoutHistoryEmpty() => _buildEmptyState(),
+    };
   }
 
   List<WorkoutRecord> _filterWorkouts(List<WorkoutRecord> records) {
@@ -367,10 +367,14 @@ class _UserWorkoutsManagementScreenState extends ConsumerState<UserWorkoutsManag
       builder: (context) => WorkoutEditModal(
         workoutRecord: workout,
         onUpdateSuccess: () {
+          // Invalidar providers para forçar atualização do calendário
+          ref.invalidate(userWorkoutsProvider);
           // Recarregar a lista após edição
           ref.read(workoutHistoryViewModelProvider.notifier).loadWorkoutHistory();
         },
         onDeleteSuccess: () {
+          // Invalidar providers para forçar atualização do calendário
+          ref.invalidate(userWorkoutsProvider);
           // Recarregar a lista após exclusão
           ref.read(workoutHistoryViewModelProvider.notifier).loadWorkoutHistory();
         },

@@ -213,6 +213,35 @@ WHERE (LOWER(wv.title) LIKE '%treino f%' OR wv.title = 'Treino F')
   AND (wv.category = 'Musculação' OR wv.instructor_name = 'Treinos de Musculação')
 LIMIT 1;
 
+-- PDF para Treino G
+INSERT INTO materials (
+    title,
+    description,
+    material_type,
+    material_context,
+    file_path,
+    author_name,
+    workout_video_id,
+    order_index,
+    is_featured,
+    requires_expert_access
+)
+SELECT 
+    'Manual Treino G - PDF',
+    'Material de apoio completo para o Treino G de musculação - programa completo de desenvolvimento.',
+    'pdf',
+    'workout',
+    'musculacao/TREINO G.pdf',
+    'Treinos de Musculação',
+    wv.id,
+    1,
+    true,
+    false
+FROM workout_videos wv
+WHERE (LOWER(wv.title) LIKE '%treino g%' OR wv.title = 'Treino G')
+  AND (wv.category = 'Musculação' OR wv.instructor_name = 'Treinos de Musculação')
+LIMIT 1;
+
 -- =====================================================
 -- PARTE 3: VERIFICAÇÕES
 -- =====================================================

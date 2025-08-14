@@ -72,12 +72,17 @@ class _WorkoutCalendarWidgetState extends ConsumerState<WorkoutCalendarWidget> {
                 final workoutMarkers = <DateTime, List<dynamic>>{};
                 
                 for (final workout in workouts) {
-                  // Normaliza a data removendo horas/minutos/segundos para comparar apenas a data
+                  // Normaliza a data convertendo para timezone local primeiro
+                  // e depois removendo horas/minutos/segundos para comparar apenas a data
+                  final localDate = workout.date.toLocal();
                   final workoutDate = DateTime(
-                    workout.date.year,
-                    workout.date.month,
-                    workout.date.day,
+                    localDate.year,
+                    localDate.month,
+                    localDate.day,
                   );
+                  
+                  // Debug: Log da conversão de timezone
+                  debugPrint('🕐 Treino "${workout.workoutName}": UTC=${DateFormat('dd/MM/yyyy HH:mm').format(workout.date)} -> Local=${DateFormat('dd/MM/yyyy HH:mm').format(localDate)} -> Normalizado=${DateFormat('dd/MM/yyyy').format(workoutDate)}');
                   
                   if (workoutMarkers.containsKey(workoutDate)) {
                     workoutMarkers[workoutDate]!.add(workout);
@@ -93,7 +98,11 @@ class _WorkoutCalendarWidgetState extends ConsumerState<WorkoutCalendarWidget> {
                   calendarFormat: _calendarFormat,
                   eventLoader: (day) {
                     final normalizedDay = DateTime(day.year, day.month, day.day);
-                    return workoutMarkers[normalizedDay] ?? [];
+                    final events = workoutMarkers[normalizedDay] ?? [];
+                    if (events.isNotEmpty) {
+                      debugPrint('📅 EventLoader: Dia ${DateFormat('dd/MM/yyyy').format(day)} tem ${events.length} treino(s)');
+                    }
+                    return events;
                   },
                   selectedDayPredicate: (day) {
                     return isSameDay(_selectedDay, day);

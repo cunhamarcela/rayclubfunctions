@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide StorageException;
 // Project imports:
 import 'package:ray_club_app/core/errors/app_exception.dart';
 import 'package:ray_club_app/features/goals/models/user_goal_model.dart';
+import 'package:ray_club_app/features/goals/models/user_goal_mapper.dart';
 
 /// Interface do repositório para metas do usuário
 abstract class GoalRepository {
@@ -156,7 +157,7 @@ class SupabaseGoalRepository implements GoalRepository {
           .eq('user_id', userId)
           .order('created_at', ascending: false);
       
-      return response.map((json) => UserGoal.fromJson(json)).toList();
+      return response.map((json) => UserGoalMapper.fromSupabaseJson(json)).toList();
     } catch (e) {
       if (e is AppAuthException) rethrow;
       
@@ -185,11 +186,11 @@ class SupabaseGoalRepository implements GoalRepository {
       
       final response = await _supabaseClient
           .from('user_goals')
-          .insert(goalData.toJson())
+          .insert(UserGoalMapper.toSupabaseJson(goalData))
           .select()
           .single();
       
-      return UserGoal.fromJson(response);
+      return UserGoalMapper.fromSupabaseJson(response);
     } catch (e) {
       if (e is AppAuthException) rethrow;
       
@@ -220,7 +221,7 @@ class SupabaseGoalRepository implements GoalRepository {
           .eq('user_id', userId)
           .single();
       
-      final goal = UserGoal.fromJson(goalResponse);
+      final goal = UserGoalMapper.fromSupabaseJson(goalResponse);
       final isCompleted = currentValue >= goal.target;
       
       // Atualizar o progresso
@@ -228,7 +229,7 @@ class SupabaseGoalRepository implements GoalRepository {
           .from('user_goals')
           .update({
             'progress': currentValue,
-            'is_completed': isCompleted,
+            'completed_at': isCompleted ? DateTime.now().toIso8601String() : null,
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', goalId)
@@ -236,7 +237,7 @@ class SupabaseGoalRepository implements GoalRepository {
           .select()
           .single();
       
-      return UserGoal.fromJson(response);
+      return UserGoalMapper.fromSupabaseJson(response);
     } catch (e) {
       if (e is AppAuthException) rethrow;
       

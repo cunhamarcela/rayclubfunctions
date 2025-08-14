@@ -23,6 +23,7 @@ Map<String, dynamic> _$$RecipeFilterImplToJson(_$RecipeFilterImpl instance) =>
     };
 
 const _$RecipeFilterCategoryEnumMap = {
+  RecipeFilterCategory.favoritas: 'favoritas',
   RecipeFilterCategory.objetivo: 'objetivo',
   RecipeFilterCategory.paladar: 'paladar',
   RecipeFilterCategory.refeicao: 'refeicao',

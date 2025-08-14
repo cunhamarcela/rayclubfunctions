@@ -8,9 +8,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ray_club_app/features/workout/models/workout_video_model.dart';
 import 'package:ray_club_app/features/workout/repositories/workout_videos_repository.dart';
 
-/// Função auxiliar para ordenar treinos de musculação na ordem específica: A, B, C, D, E, F
+/// Função auxiliar para ordenar treinos de musculação na ordem específica: A, B, C, D, E, F, G
 List<WorkoutVideo> _sortMusculacaoVideos(List<WorkoutVideo> videos) {
-  final ordenacao = ['treino a', 'treino b', 'treino c', 'treino d', 'treino e', 'treino f'];
+  final ordenacao = ['treino a', 'treino b', 'treino c', 'treino d', 'treino e', 'treino f', 'treino g'];
   
   videos.sort((a, b) {
     final tituloA = a.title.toLowerCase();
@@ -108,9 +108,9 @@ final homeWorkoutVideosProvider = FutureProvider<List<HomePartnerStudio>>((ref) 
     // Organizar em estúdios parceiros
     final studios = <HomePartnerStudio>[];
     
-    // 1. 💪 Treinos de Musculação - Organizados por Semanas
+    // 1. 💪 Treinos de Musculação - Treinos A-G (sem vídeos com "semana")
     if (musculacaoVideos.isNotEmpty) {
-      // 🎯 FILTRO ESPECÍFICO: Mostrar apenas Treinos A, B, C, D, E, F na home
+      // 🎯 FILTRO ESPECÍFICO: Mostrar apenas Treinos A, B, C, D, E, F, G na home
       final treinosEspecificos = musculacaoVideos.where((video) {
         final titulo = video.title.toLowerCase();
         return titulo.contains('treino a') || 
@@ -118,12 +118,13 @@ final homeWorkoutVideosProvider = FutureProvider<List<HomePartnerStudio>>((ref) 
                titulo.contains('treino c') || 
                titulo.contains('treino d') || 
                titulo.contains('treino e') || 
-               titulo.contains('treino f');
+               titulo.contains('treino f') ||
+               titulo.contains('treino g');
       }).toList();
       
-      // Filtrar apenas os treinos principais (não "Semana 02")
+      // Filtrar apenas os treinos principais (sem qualquer palavra "semana" no título)
       final treinosPrincipais = treinosEspecificos.where((video) => 
-        !video.title.toLowerCase().contains('semana 02')
+        !video.title.toLowerCase().contains('semana')
       ).toList();
       
       if (treinosPrincipais.isNotEmpty) {
@@ -134,7 +135,7 @@ final homeWorkoutVideosProvider = FutureProvider<List<HomePartnerStudio>>((ref) 
           HomePartnerStudio(
             id: 'musculacao',
             name: 'Treinos de Musculação',
-            tagline: 'Treinos completos A-F com vídeos e PDFs',
+            tagline: 'Treinos completos A-G com vídeos e PDFs',
             videos: treinosOrdenados,
             logoColor: const Color(0xFF27AE60),
             backgroundColor: const Color(0xFFE9F7EF),

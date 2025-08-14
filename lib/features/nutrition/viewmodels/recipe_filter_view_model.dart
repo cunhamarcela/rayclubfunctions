@@ -10,7 +10,7 @@ final recipeFilterProvider = StateNotifierProvider<RecipeFilterViewModel, Recipe
 
 /// Provider para receitas filtradas
 final filteredRecipesProvider = Provider<List<Recipe>>((ref) {
-  final recipesAsync = ref.watch(nutritionistRecipesProvider);
+  final recipesAsync = ref.watch(nutritionistRecipesWithFavoritesProvider);
   final filterState = ref.watch(recipeFilterProvider);
   
   return recipesAsync.whenData((recipes) {
@@ -18,26 +18,55 @@ final filteredRecipesProvider = Provider<List<Recipe>>((ref) {
       return recipes;
     }
     
-    return BrunaRecipeFilters.filterRecipes<Recipe>(
-      recipes,
-      filterState.selectedFilters,
-      (recipe) => recipe.tags.join(','),
-    );
+    // Verifica se há filtro de favoritas selecionado
+    final hasFavoritesFilter = filterState.selectedFilters
+        .any((filter) => filter.category == RecipeFilterCategory.favoritas);
+    
+    List<Recipe> filteredRecipes = recipes;
+    
+    // Aplica filtro de favoritas primeiro se selecionado
+    if (hasFavoritesFilter) {
+      filteredRecipes = recipes.where((recipe) => recipe.isFavorite ?? false).toList();
+    }
+    
+    // Aplica outros filtros excluindo favoritas
+    final otherFilters = filterState.selectedFilters
+        .where((filter) => filter.category != RecipeFilterCategory.favoritas)
+        .toList();
+    
+    if (otherFilters.isNotEmpty) {
+      filteredRecipes = BrunaRecipeFilters.filterRecipes<Recipe>(
+        filteredRecipes,
+        otherFilters,
+        (recipe) => recipe.tags.join(','),
+      );
+    }
+    
+    return filteredRecipes;
   }).valueOrNull ?? [];
 });
 
 /// Provider para contagem de receitas por filtro
 final filterCountsProvider = Provider<Map<String, int>>((ref) {
-  final recipesAsync = ref.watch(nutritionistRecipesProvider);
+  final recipesAsync = ref.watch(nutritionistRecipesWithFavoritesProvider);
   final allFilters = ref.watch(recipeFilterProvider).availableFilters;
   
   return recipesAsync.whenData((recipes) {
     final counts = <String, int>{};
     
     for (final filter in allFilters) {
-      final filteredCount = recipes.where((recipe) {
-        return recipe.tags.contains(filter.name);
-      }).length;
+      int filteredCount;
+      
+      // Lógica especial para filtro de favoritas
+      if (filter.category == RecipeFilterCategory.favoritas) {
+        filteredCount = recipes.where((recipe) => recipe.isFavorite ?? false).length;
+      } else {
+        // Lógica normal para outros filtros baseados em tags
+        filteredCount = recipes.where((recipe) {
+          return recipe.tags.contains(filter.name);
+        }).length;
+      }
+      
       counts[filter.id] = filteredCount;
     }
     

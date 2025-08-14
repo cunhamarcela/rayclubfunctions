@@ -272,7 +272,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.emoji_events),
-                    title: const Text('Desafio Ray 21'),
+                    title: const Text('Desafios'),
                     onTap: () {
                       Navigator.pop(context);
                       AppNavigator.navigateToChallenges(context);

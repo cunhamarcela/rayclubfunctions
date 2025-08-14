@@ -36,18 +36,19 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
 
   /// Abre o link do Ingresse para compra de ingressos
   Future<void> _openEventLink() async {
-    const url = 'https://embedstore.ingresse.com/tickets/www.ingresse.com/event/83740?coupon=DesafioDaRay';
-    
     try {
-      final Uri uri = Uri.parse(url);
+      final uri = Uri.parse('https://embedstore.ingresse.com/tickets/www.ingresse.com/event/84661?passkey=CLUB9');
       if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Não foi possível abrir o link'),
-              backgroundColor: Colors.red,
+              content: Text('Não foi possível abrir o link dos ingressos'),
+              backgroundColor: Colors.orange,
             ),
           );
         }
@@ -55,8 +56,8 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao abrir link: $e'),
+          const SnackBar(
+            content: Text('Erro ao abrir link dos ingressos'),
             backgroundColor: Colors.red,
           ),
         );
@@ -104,7 +105,7 @@ class _EventsScreenState extends ConsumerState<EventsScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: Image.asset(
-                  'assets/images/WhatsApp Image 2025-06-05 at 20.37.12.jpeg',
+                  'assets/images/evento09.jpeg',
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // Project imports:
 import 'package:ray_club_app/core/errors/app_exception.dart';
 import 'package:ray_club_app/features/dashboard/models/dashboard_fitness_data.dart';
+import 'package:ray_club_app/features/dashboard/models/dashboard_period.dart';
 import 'package:ray_club_app/features/dashboard/repositories/dashboard_fitness_repository.dart';
 
 /// Provider para o ViewModel do dashboard fitness
@@ -23,14 +24,63 @@ final dayDetailsProvider =
   return DayDetailsViewModel(repository, date);
 });
 
-/// ViewModel para gerenciar o estado do dashboard fitness
+/// ViewModel para gerenciar o estado do dashboard fitness com filtros de período
 class DashboardFitnessViewModel extends StateNotifier<AsyncValue<DashboardFitnessData>> {
   final DashboardFitnessRepository _repository;
   DateTime _currentMonth = DateTime.now();
+  
+  // Propriedades de filtro de período
+  DashboardPeriod _selectedPeriod = DashboardPeriod.thisMonth;
+  DateRange? _customRange;
 
   DashboardFitnessViewModel(this._repository) : super(const AsyncValue.loading()) {
     // Carrega os dados automaticamente ao inicializar
     _initializeWithLatestMonth();
+  }
+
+  /// Período selecionado atualmente
+  DashboardPeriod get selectedPeriod => _selectedPeriod;
+  
+  /// Range personalizado (quando período é custom)
+  DateRange? get customRange => _customRange;
+  
+  /// Retorna a lista de períodos disponíveis
+  List<DashboardPeriod> get availablePeriods => [
+    DashboardPeriod.thisWeek,
+    DashboardPeriod.lastWeek,
+    DashboardPeriod.thisMonth,
+    DashboardPeriod.lastMonth,
+    DashboardPeriod.last30Days,
+    DashboardPeriod.last3Months,
+    DashboardPeriod.thisYear,
+    DashboardPeriod.custom,
+  ];
+  
+  /// Verifica se o período atual é personalizado
+  bool get isCustomPeriod => _selectedPeriod == DashboardPeriod.custom;
+  
+  /// Retorna o texto descritivo do período atual
+  String get currentPeriodDescription {
+    if (_selectedPeriod == DashboardPeriod.custom && _customRange != null) {
+      return _customRange!.formattedRange;
+    }
+    return _selectedPeriod.description;
+  }
+
+  /// Atualiza o período selecionado
+  Future<void> updatePeriod(DashboardPeriod period, [DateRange? customRange]) async {
+    if (_selectedPeriod == period && _customRange == customRange) {
+      debugPrint('📅 Período já está selecionado: ${period.displayName}');
+      return;
+    }
+    
+    debugPrint('📅 Atualizando período: ${_selectedPeriod.displayName} → ${period.displayName}');
+    
+    _selectedPeriod = period;
+    _customRange = customRange;
+    
+    // Recarrega os dados com o novo período
+    await loadDashboardData();
   }
 
   /// Inicializa o dashboard com o mês que tem treinos mais recentes
@@ -55,7 +105,7 @@ class DashboardFitnessViewModel extends StateNotifier<AsyncValue<DashboardFitnes
   /// Mês atual sendo exibido
   DateTime get currentMonth => _currentMonth;
 
-  /// Carrega dados do dashboard para o mês atual
+  /// Carrega dados do dashboard baseado no período selecionado
   Future<void> loadDashboardData({DateTime? month}) async {
     try {
       if (month != null) {
@@ -64,9 +114,17 @@ class DashboardFitnessViewModel extends StateNotifier<AsyncValue<DashboardFitnes
 
       state = const AsyncValue.loading();
       
-      debugPrint('📊 Carregando dashboard fitness para ${_currentMonth.month}/${_currentMonth.year}');
+      debugPrint('📊 Carregando dashboard fitness para período: ${_selectedPeriod.displayName}');
       
-      final data = await _repository.getDashboardFitnessData(month: _currentMonth);
+      // Calcula o range de datas baseado no período selecionado
+      final dateRange = _selectedPeriod.calculateDateRange(_customRange);
+      
+      debugPrint('📅 Período calculado: ${dateRange.formattedRange}');
+      
+      final data = await _repository.getDashboardFitnessData(
+        period: _selectedPeriod,
+        customRange: _customRange,
+      );
       
       state = AsyncValue.data(data);
       
@@ -154,6 +212,19 @@ class DashboardFitnessViewModel extends StateNotifier<AsyncValue<DashboardFitnes
         }
       },
     );
+  }
+
+  /// Verifica se uma data está no período atual sendo exibido
+  bool isInCurrentPeriod(DateTime date) {
+    if (_selectedPeriod == DashboardPeriod.custom && _customRange != null) {
+      return date.isAfter(_customRange!.start.subtract(const Duration(days: 1))) &&
+             date.isBefore(_customRange!.end.add(const Duration(days: 1)));
+    }
+    
+    // Para períodos não personalizados, usar lógica do período
+    final range = _selectedPeriod.calculateDateRange(_customRange);
+    return date.isAfter(range.start.subtract(const Duration(days: 1))) &&
+           date.isBefore(range.end.add(const Duration(days: 1)));
   }
 
   /// Verifica se uma data está no mês atual sendo exibido

@@ -13,9 +13,11 @@ import 'package:ray_club_app/features/auth/viewmodels/auth_view_model.dart';
 import 'package:ray_club_app/features/dashboard/providers/dashboard_providers.dart';
 import 'package:ray_club_app/features/dashboard/viewmodels/dashboard_view_model.dart';
 import 'package:ray_club_app/features/dashboard/widgets/challenge_progress_widget.dart';
+import 'package:ray_club_app/features/dashboard/widgets/period_selector_widget.dart';
 import 'package:ray_club_app/features/dashboard/widgets/progress_dashboard_widget.dart';
 import 'package:ray_club_app/features/dashboard/widgets/workout_calendar_widget.dart';
 import 'package:ray_club_app/features/dashboard/widgets/workout_duration_widget.dart';
+
 import 'package:ray_club_app/features/settings/screens/settings_screen.dart';
 import 'package:ray_club_app/features/workout/viewmodels/workout_view_model.dart';
 import 'package:ray_club_app/features/workout/viewmodels/workout_history_view_model.dart';
@@ -84,7 +86,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const BackButton(color: Color(0xFF4D4D4D)),
+                    // ✅ CORREÇÃO: Botão de voltar funcional
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF4D4D4D)),
+                      onPressed: () {
+                        try {
+                          // Método 1: Usar auto_route (preferido)
+                          debugPrint('🔄 Dashboard: Tentando voltar para home via auto_route');
+                          context.router.navigateNamed('/');
+                        } catch (e) {
+                          try {
+                            // Método 2: Fallback com Navigator padrão
+                            debugPrint('🔄 Dashboard: Fallback - tentando Navigator.pop()');
+                            Navigator.of(context).pop();
+                          } catch (e2) {
+                            try {
+                              // Método 3: Último recurso - navegação manual para home
+                              debugPrint('🔄 Dashboard: Último recurso - navegação manual para home');
+                              Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+                            } catch (e3) {
+                              debugPrint('❌ Dashboard: Erro ao navegar de volta: $e3');
+                            }
+                          }
+                        }
+                      },
+                    ),
                     const Text(
                       'Dashboard',
                       style: TextStyle(
@@ -188,6 +214,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Seletor de período
+          const PeriodSelectorWidget(),
+          
+          const SizedBox(height: 16),
+          
           // Dashboard de progresso
           const ProgressDashboardWidget(),
           

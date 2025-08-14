@@ -33,6 +33,54 @@ final allWorkoutVideosProvider = FutureProvider<List<WorkoutVideo>>((ref) async 
   return repository.getAllVideos();
 });
 
+// ✨ NOVO: Provider para vídeos de fisioterapia filtrados por subcategoria
+final physiotherapyVideosBySubcategoryProvider = FutureProvider.family<List<WorkoutVideo>, String>((ref, subcategoryName) async {
+  print('🔍 Provider chamado para subcategoria: "$subcategoryName"');
+  final repository = ref.watch(workoutVideosRepositoryProvider);
+  
+  // Buscar todos os vídeos de fisioterapia
+  const physiotherapyCategory = 'da178dba-ae94-425a-aaed-133af7b1bb0f';
+  final allVideos = await repository.getVideosByCategory(physiotherapyCategory);
+  
+  // Filtrar por subcategoria baseado no nome/título do vídeo
+  final filteredVideos = allVideos.where((video) {
+    final title = video.title.toLowerCase();
+    final description = video.description?.toLowerCase() ?? '';
+    
+    switch (subcategoryName.toLowerCase()) {
+      case 'testes':
+        return title.contains('apresentação') || 
+               title.contains('teste') || 
+               title.contains('avaliação') ||
+               description.contains('apresentação') ||
+               description.contains('introdução');
+               
+      case 'mobilidade':
+        return title.contains('mobilidade') ||
+               description.contains('mobilidade') ||
+               description.contains('amplitude');
+               
+      case 'estabilidade':
+        return title.contains('prevenção') || 
+               title.contains('lesões') || 
+               title.contains('joelho') || 
+               title.contains('coluna') ||
+               title.contains('fortalecimento') ||
+               title.contains('estabilidade') ||
+               title.contains('prancha') ||
+               title.contains('dor') ||
+               description.contains('prevenção') ||
+               description.contains('fortaleça') ||
+               description.contains('estabilidade');
+               
+      default:
+        return true; // Mostrar todos se não reconhecer a subcategoria
+    }
+  }).toList();
+  
+  return filteredVideos;
+});
+
 // State para filtros de busca
 class WorkoutVideoFilters {
   final String? query;

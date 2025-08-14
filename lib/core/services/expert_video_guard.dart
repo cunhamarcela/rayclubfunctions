@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ray_club_app/features/workout/providers/user_access_provider.dart';
 import 'package:ray_club_app/providers/user_profile_provider.dart' as profile_providers;
+import 'package:ray_club_app/widgets/pdf_viewer_widget.dart';
+import 'package:ray_club_app/models/material.dart' as app_material;
 
 /// Serviço centralizado para proteção de vídeos expert
 /// Implementa sistema fail-safe: qualquer erro resulta em bloqueio
@@ -120,6 +122,62 @@ class ExpertVideoGuard {
     }
   }
   
+  /// Manipula o clique em PDFs com verificação rigorosa  
+  /// ⚠️ FAIL-SAFE: Qualquer problema = bloqueio mostrado
+  static Future<void> handlePdfTap(BuildContext context, WidgetRef ref, app_material.Material material, VoidCallback onAllowed) async {
+    try {
+      debugPrint('📄 [handlePdfTap] Iniciando verificação para PDF: ${material.title}');
+      
+      if (!context.mounted) {
+        debugPrint('📄 [handlePdfTap] Context não montado - abortando');
+        return;
+      }
+      
+      final canAccess = await canPlayVideo(ref, material.id);
+      debugPrint('📄 [handlePdfTap] canAccess result: $canAccess');
+      
+      if (!context.mounted) {
+        debugPrint('📄 [handlePdfTap] Context não montado após verificação - abortando');
+        return;
+      }
+      
+      if (canAccess) {
+        debugPrint('📄 [handlePdfTap] ✅ CHAMANDO onAllowed() para PDF');
+        onAllowed();
+        debugPrint('📄 [handlePdfTap] ✅ onAllowed() EXECUTADO para PDF');
+      } else {
+        debugPrint('📄 [handlePdfTap] ❌ Mostrando diálogo de acesso negado para PDF');
+        await showExpertRequiredDialog(context);
+      }
+    } catch (e) {
+      debugPrint('[ExpertVideoGuard] Error in handlePdfTap: $e');
+      if (context.mounted) {
+        await showExpertRequiredDialog(context);
+      }
+    }
+  }
+
+  /// Abre PDF com proteção expert
+  /// ⚠️ FAIL-SAFE: Só permite acesso se for expert
+  static Future<void> openProtectedPdf(BuildContext context, WidgetRef ref, app_material.Material material) async {
+    await handlePdfTap(
+      context,
+      ref,
+      material,
+      () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PdfViewerWidget(
+              material: material,
+              title: material.title,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   /// Diálogo de bloqueio para usuários não-expert
   static Future<void> showExpertRequiredDialog(BuildContext context) async {
     if (!context.mounted) return;

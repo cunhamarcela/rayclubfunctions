@@ -7,6 +7,7 @@ import 'package:ray_club_app/features/workout/providers/workout_material_provide
 import 'package:ray_club_app/widgets/pdf_viewer_widget.dart';
 import 'package:ray_club_app/features/home/widgets/youtube_player_widget.dart';
 import 'package:ray_club_app/models/material.dart' as app_material;
+import 'package:ray_club_app/core/services/expert_video_guard.dart';
 
 
 class WorkoutVideoDetailScreen extends ConsumerWidget {
@@ -123,13 +124,12 @@ class WorkoutVideoDetailScreen extends ConsumerWidget {
         const SizedBox(height: 16),
         
         // Metadados
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            _buildMetadataChip('Duração', video.duration),
-            const SizedBox(width: 8),
             if (video.difficulty != null)
               _buildMetadataChip('Dificuldade', video.difficulty!),
-            const SizedBox(width: 8),
             if (video.instructorName != null)
               _buildMetadataChip('Instrutor', video.instructorName!),
           ],
@@ -155,44 +155,48 @@ class WorkoutVideoDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildMaterialsSection(BuildContext context, List<app_material.Material> materials) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Materiais do Treino',
-          style: AppTextStyles.subtitle,
-        ),
-        const SizedBox(height: 16),
-        
-        ...materials.map((material) => Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.primaryLight),
-          ),
-          child: ListTile(
-            leading: Icon(
-              Icons.picture_as_pdf,
-              color: AppColors.primary,
+    return Consumer(
+      builder: (context, ref, child) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Materiais do Treino',
+              style: AppTextStyles.subtitle,
             ),
-            title: Text(
-              material.title,
-              style: AppTextStyles.body,
-            ),
-            subtitle: Text(
-              material.description,
-              style: AppTextStyles.smallText,
-            ),
-            trailing: Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: AppColors.textSecondary,
-            ),
-            onTap: () => _openPdfViewer(context, material),
-          ),
-        )),
-      ],
+            const SizedBox(height: 16),
+            
+            ...materials.map((material) => Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.primaryLight),
+              ),
+              child: ListTile(
+                leading: Icon(
+                  Icons.picture_as_pdf,
+                  color: AppColors.primary,
+                ),
+                title: Text(
+                  material.title,
+                  style: AppTextStyles.body,
+                ),
+                subtitle: Text(
+                  material.description,
+                  style: AppTextStyles.smallText,
+                ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: AppColors.textSecondary,
+                ),
+                onTap: () => ExpertVideoGuard.openProtectedPdf(context, ref, material),
+              ),
+            )),
+          ],
+        );
+      },
     );
   }
 
@@ -217,15 +221,5 @@ class WorkoutVideoDetailScreen extends ConsumerWidget {
     }
   }
 
-  void _openPdfViewer(BuildContext context, app_material.Material material) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PdfViewerWidget(
-          material: material,
-          title: material.title,
-        ),
-      ),
-    );
-  }
+
 } 

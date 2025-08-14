@@ -48,7 +48,9 @@ mixin _$WorkoutVideo {
   DateTime? get updatedAt =>
       throw _privateConstructorUsedError; // ✨ NOVO: Suporte a PDFs
   @JsonKey(name: 'has_pdf_materials')
-  bool get hasPdfMaterials => throw _privateConstructorUsedError;
+  bool get hasPdfMaterials =>
+      throw _privateConstructorUsedError; // ✨ NOVO: Subcategoria (para fisioterapia: testes, mobilidade, estabilidade)
+  String? get subcategory => throw _privateConstructorUsedError;
 
   /// Serializes this WorkoutVideo to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -83,7 +85,8 @@ abstract class $WorkoutVideoCopyWith<$Res> {
       @JsonKey(name: 'requires_expert_access') bool requiresExpertAccess,
       @JsonKey(name: 'created_at') DateTime? createdAt,
       @JsonKey(name: 'updated_at') DateTime? updatedAt,
-      @JsonKey(name: 'has_pdf_materials') bool hasPdfMaterials});
+      @JsonKey(name: 'has_pdf_materials') bool hasPdfMaterials,
+      String? subcategory});
 }
 
 /// @nodoc
@@ -118,6 +121,7 @@ class _$WorkoutVideoCopyWithImpl<$Res, $Val extends WorkoutVideo>
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
     Object? hasPdfMaterials = null,
+    Object? subcategory = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -188,6 +192,10 @@ class _$WorkoutVideoCopyWithImpl<$Res, $Val extends WorkoutVideo>
           ? _value.hasPdfMaterials
           : hasPdfMaterials // ignore: cast_nullable_to_non_nullable
               as bool,
+      subcategory: freezed == subcategory
+          ? _value.subcategory
+          : subcategory // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -217,7 +225,8 @@ abstract class _$$WorkoutVideoImplCopyWith<$Res>
       @JsonKey(name: 'requires_expert_access') bool requiresExpertAccess,
       @JsonKey(name: 'created_at') DateTime? createdAt,
       @JsonKey(name: 'updated_at') DateTime? updatedAt,
-      @JsonKey(name: 'has_pdf_materials') bool hasPdfMaterials});
+      @JsonKey(name: 'has_pdf_materials') bool hasPdfMaterials,
+      String? subcategory});
 }
 
 /// @nodoc
@@ -250,6 +259,7 @@ class __$$WorkoutVideoImplCopyWithImpl<$Res>
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
     Object? hasPdfMaterials = null,
+    Object? subcategory = freezed,
   }) {
     return _then(_$WorkoutVideoImpl(
       id: null == id
@@ -320,6 +330,10 @@ class __$$WorkoutVideoImplCopyWithImpl<$Res>
           ? _value.hasPdfMaterials
           : hasPdfMaterials // ignore: cast_nullable_to_non_nullable
               as bool,
+      subcategory: freezed == subcategory
+          ? _value.subcategory
+          : subcategory // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -345,7 +359,8 @@ class _$WorkoutVideoImpl implements _WorkoutVideo {
       this.requiresExpertAccess = false,
       @JsonKey(name: 'created_at') this.createdAt,
       @JsonKey(name: 'updated_at') this.updatedAt,
-      @JsonKey(name: 'has_pdf_materials') this.hasPdfMaterials = false});
+      @JsonKey(name: 'has_pdf_materials') this.hasPdfMaterials = false,
+      this.subcategory});
 
   factory _$WorkoutVideoImpl.fromJson(Map<String, dynamic> json) =>
       _$$WorkoutVideoImplFromJson(json);
@@ -396,10 +411,13 @@ class _$WorkoutVideoImpl implements _WorkoutVideo {
   @override
   @JsonKey(name: 'has_pdf_materials')
   final bool hasPdfMaterials;
+// ✨ NOVO: Subcategoria (para fisioterapia: testes, mobilidade, estabilidade)
+  @override
+  final String? subcategory;
 
   @override
   String toString() {
-    return 'WorkoutVideo(id: $id, title: $title, duration: $duration, youtubeUrl: $youtubeUrl, thumbnailUrl: $thumbnailUrl, category: $category, instructorName: $instructorName, description: $description, difficulty: $difficulty, orderIndex: $orderIndex, isNew: $isNew, isPopular: $isPopular, isRecommended: $isRecommended, requiresExpertAccess: $requiresExpertAccess, createdAt: $createdAt, updatedAt: $updatedAt, hasPdfMaterials: $hasPdfMaterials)';
+    return 'WorkoutVideo(id: $id, title: $title, duration: $duration, youtubeUrl: $youtubeUrl, thumbnailUrl: $thumbnailUrl, category: $category, instructorName: $instructorName, description: $description, difficulty: $difficulty, orderIndex: $orderIndex, isNew: $isNew, isPopular: $isPopular, isRecommended: $isRecommended, requiresExpertAccess: $requiresExpertAccess, createdAt: $createdAt, updatedAt: $updatedAt, hasPdfMaterials: $hasPdfMaterials, subcategory: $subcategory)';
   }
 
   @override
@@ -437,7 +455,9 @@ class _$WorkoutVideoImpl implements _WorkoutVideo {
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt) &&
             (identical(other.hasPdfMaterials, hasPdfMaterials) ||
-                other.hasPdfMaterials == hasPdfMaterials));
+                other.hasPdfMaterials == hasPdfMaterials) &&
+            (identical(other.subcategory, subcategory) ||
+                other.subcategory == subcategory));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -460,7 +480,8 @@ class _$WorkoutVideoImpl implements _WorkoutVideo {
       requiresExpertAccess,
       createdAt,
       updatedAt,
-      hasPdfMaterials);
+      hasPdfMaterials,
+      subcategory);
 
   /// Create a copy of WorkoutVideo
   /// with the given fields replaced by the non-null parameter values.
@@ -496,8 +517,8 @@ abstract class _WorkoutVideo implements WorkoutVideo {
       @JsonKey(name: 'requires_expert_access') final bool requiresExpertAccess,
       @JsonKey(name: 'created_at') final DateTime? createdAt,
       @JsonKey(name: 'updated_at') final DateTime? updatedAt,
-      @JsonKey(name: 'has_pdf_materials')
-      final bool hasPdfMaterials}) = _$WorkoutVideoImpl;
+      @JsonKey(name: 'has_pdf_materials') final bool hasPdfMaterials,
+      final String? subcategory}) = _$WorkoutVideoImpl;
 
   factory _WorkoutVideo.fromJson(Map<String, dynamic> json) =
       _$WorkoutVideoImpl.fromJson;
@@ -546,7 +567,10 @@ abstract class _WorkoutVideo implements WorkoutVideo {
   DateTime? get updatedAt; // ✨ NOVO: Suporte a PDFs
   @override
   @JsonKey(name: 'has_pdf_materials')
-  bool get hasPdfMaterials;
+  bool
+      get hasPdfMaterials; // ✨ NOVO: Subcategoria (para fisioterapia: testes, mobilidade, estabilidade)
+  @override
+  String? get subcategory;
 
   /// Create a copy of WorkoutVideo
   /// with the given fields replaced by the non-null parameter values.

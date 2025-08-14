@@ -29,6 +29,7 @@ _$WorkoutVideoImpl _$$WorkoutVideoImplFromJson(Map<String, dynamic> json) =>
           ? null
           : DateTime.parse(json['updated_at'] as String),
       hasPdfMaterials: json['has_pdf_materials'] as bool? ?? false,
+      subcategory: json['subcategory'] as String?,
     );
 
 Map<String, dynamic> _$$WorkoutVideoImplToJson(_$WorkoutVideoImpl instance) =>
@@ -52,4 +53,5 @@ Map<String, dynamic> _$$WorkoutVideoImplToJson(_$WorkoutVideoImpl instance) =>
       if (instance.updatedAt?.toIso8601String() case final value?)
         'updated_at': value,
       'has_pdf_materials': instance.hasPdfMaterials,
+      if (instance.subcategory case final value?) 'subcategory': value,
     };

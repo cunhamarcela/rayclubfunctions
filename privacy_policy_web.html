@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política de Privacidade - Ray Club</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            max-width: 600px;
+            background-color: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        h1 {
+            color: #2c5aa0;
+            margin-bottom: 20px;
+        }
+        .app-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: bold;
+            margin: 20px 10px;
+            transition: transform 0.2s;
+        }
+        .app-link:hover {
+            transform: translateY(-2px);
+        }
+        .fallback {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .contact {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #666;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">RC</div>
+        <h1>Política de Privacidade</h1>
+        <p>Esta página irá abrir a Política de Privacidade completa no aplicativo Ray Club.</p>
+        
+        <a href="rayclub://ray-club-app/privacy-policy" class="app-link" onclick="openApp()">
+            📱 Abrir no App
+        </a>
+        
+        <div class="fallback">
+            <h3>📋 Resumo da Política (v3.0)</h3>
+            <p><strong>O Ray Club</strong> é um app de fitness e bem-estar que coleta apenas os dados necessários para seu funcionamento.</p>
+            
+            <div class="highlight">
+                <h4>🔐 Permissão de Câmera (Android)</h4>
+                <p><strong>⚠️ TOTALMENTE OPCIONAL</strong> - Você pode usar o app completo sem esta permissão!</p>
+                <p>Usamos apenas para:</p>
+                <ul style="text-align: left; display: inline-block;">
+                    <li>Fotos de perfil personalizadas</li>
+                    <li>Registro de progresso físico</li>
+                    <li>Documentação de refeições</li>
+                    <li>Digitalização de códigos QR para cupons</li>
+                </ul>
+            </div>
+            
+            <h4>📊 Dados Coletados</h4>
+            <ul style="text-align: left; display: inline-block;">
+                <li><strong>Cadastro:</strong> Nome, e-mail, gênero, Instagram</li>
+                <li><strong>Uso:</strong> Treinos, progresso, desafios, grupos</li>
+                <li><strong>Login:</strong> Google, Apple ou e-mail</li>
+                <li><strong>Dispositivo:</strong> Tipo, sistema operacional</li>
+            </ul>
+            
+            <h4>🎯 Finalidade</h4>
+            <p>Personalizar treinos, gerenciar desafios, melhorar o app e garantir segurança.</p>
+            
+            <h4>🛡️ Segurança & Direitos</h4>
+            <ul style="text-align: left; display: inline-block;">
+                <li>Dados criptografados e protegidos</li>
+                <li><strong>NÃO vendemos</strong> seus dados</li>
+                <li>Você pode acessar, corrigir ou excluir</li>
+                <li>Revogar consentimento a qualquer momento</li>
+            </ul>
+            
+            <h4>👥 Compartilhamento</h4>
+            <p>Apenas com:</p>
+            <ul style="text-align: left; display: inline-block;">
+                <li>Provedores técnicos (Supabase, Sentry)</li>
+                <li>Quando exigido por lei</li>
+                <li>Com seu consentimento explícito</li>
+            </ul>
+        </div>
+        
+        <div class="contact">
+            <h4>📧 Contato & Direitos</h4>
+            <p><strong>E-mail:</strong> marcela@brius.com.br<br>
+            <strong>Empresa:</strong> Ray Club LTDA<br>
+            <strong>Prazo de resposta:</strong> 15 dias úteis</p>
+            
+            <p><small>
+                <strong>Última atualização:</strong> 21 de Janeiro de 2025<br>
+                <strong>Versão:</strong> 3.0<br>
+                <strong>Conformidade:</strong> LGPD, Google Play Store, Apple App Store
+            </small></p>
+        </div>
+    </div>
+
+    <script>
+        function openApp() {
+            // Tenta abrir o app
+            setTimeout(function() {
+                // Se não conseguir abrir o app em 2 segundos, mostra instruções
+                alert('Para visualizar a política completa, baixe o app Ray Club na Google Play Store ou Apple App Store.');
+            }, 2000);
+        }
+        
+        // Auto-redirect para o app
+        window.addEventListener('load', function() {
+            // Tenta abrir automaticamente no app se estiver no mobile
+            if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                window.location.href = 'rayclub://ray-club-app/privacy-policy';
+            }
+        });
+    </script>
+</body>
+</html> 

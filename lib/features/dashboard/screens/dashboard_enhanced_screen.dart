@@ -13,6 +13,7 @@ import 'package:ray_club_app/features/dashboard/widgets/nutrition_tracking_widge
 import 'package:ray_club_app/features/subscription/widgets/premium_feature_gate.dart';
 import '../widgets/quick_actions_widget.dart';
 import '../widgets/challenge_progress_widget.dart';
+import '../widgets/goals_section_enhanced.dart';
 
 /// Dashboard aprimorado com recursos adicionais
 /// Este dashboard usa a função get_dashboard_data e é separado do dashboard core
@@ -163,7 +164,12 @@ class _DashboardEnhancedScreenState extends ConsumerState<DashboardEnhancedScree
         
         const SizedBox(height: 16),
         
-        // Metas - Protegidas por gate inline
+        // Metas Pré-Estabelecidas - Nova seção integrada
+        const GoalsSectionEnhanced(),
+        
+        const SizedBox(height: 16),
+
+        // Metas antigas - Protegidas por gate inline
         if (data.goals.isNotEmpty) ...[
           QuietProgressGate(
             featureKey: 'advanced_tracking',

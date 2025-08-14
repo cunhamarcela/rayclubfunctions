@@ -205,6 +205,25 @@ class BenefitsRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [CardioRankingScreen]
+class CardioRankingRoute extends PageRouteInfo<void> {
+  const CardioRankingRoute({List<PageRouteInfo>? children})
+      : super(
+          CardioRankingRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'CardioRankingRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const CardioRankingScreen();
+    },
+  );
+}
+
+/// generated route for
 /// [ChallengeCompletedScreen]
 class ChallengeCompletedRoute extends PageRouteInfo<void> {
   const ChallengeCompletedRoute({List<PageRouteInfo>? children})
@@ -1331,6 +1350,71 @@ class NutritionRoute extends PageRouteInfo<void> {
       return const NutritionScreen();
     },
   );
+}
+
+/// generated route for
+/// [ParticipantWorkoutsScreen]
+class ParticipantWorkoutsRoute
+    extends PageRouteInfo<ParticipantWorkoutsRouteArgs> {
+  ParticipantWorkoutsRoute({
+    Key? key,
+    required String participantId,
+    required String participantName,
+    DateTime? dateFrom,
+    DateTime? dateTo,
+    List<PageRouteInfo>? children,
+  }) : super(
+          ParticipantWorkoutsRoute.name,
+          args: ParticipantWorkoutsRouteArgs(
+            key: key,
+            participantId: participantId,
+            participantName: participantName,
+            dateFrom: dateFrom,
+            dateTo: dateTo,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'ParticipantWorkoutsRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<ParticipantWorkoutsRouteArgs>();
+      return ParticipantWorkoutsScreen(
+        key: args.key,
+        participantId: args.participantId,
+        participantName: args.participantName,
+        dateFrom: args.dateFrom,
+        dateTo: args.dateTo,
+      );
+    },
+  );
+}
+
+class ParticipantWorkoutsRouteArgs {
+  const ParticipantWorkoutsRouteArgs({
+    this.key,
+    required this.participantId,
+    required this.participantName,
+    this.dateFrom,
+    this.dateTo,
+  });
+
+  final Key? key;
+
+  final String participantId;
+
+  final String participantName;
+
+  final DateTime? dateFrom;
+
+  final DateTime? dateTo;
+
+  @override
+  String toString() {
+    return 'ParticipantWorkoutsRouteArgs{key: $key, participantId: $participantId, participantName: $participantName, dateFrom: $dateFrom, dateTo: $dateTo}';
+  }
 }
 
 /// generated route for

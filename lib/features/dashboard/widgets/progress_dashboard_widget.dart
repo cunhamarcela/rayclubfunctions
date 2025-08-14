@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 
 // Package imports:
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:auto_route/auto_route.dart';
 
 // Project imports:
 import 'package:ray_club_app/features/dashboard/providers/dashboard_providers.dart';
 import 'package:ray_club_app/features/dashboard/viewmodels/dashboard_view_model.dart';
+import 'package:ray_club_app/core/router/app_router.dart';
 
 /// Widget que exibe o progresso do usuário no dashboard
 class ProgressDashboardWidget extends ConsumerWidget {
@@ -53,29 +55,54 @@ class ProgressDashboardWidget extends ConsumerWidget {
   
   /// Constrói o dashboard com os dados de progresso
   Widget _buildProgressDashboard(BuildContext context, dashboardData) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
+    return InkWell(
+      onTap: () => _navigateToWorkoutsList(context),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Seu Progresso',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontFamily: 'StingerTrial',
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF4D4D4D),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Seu Progresso',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontFamily: 'StingerTrial',
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF4D4D4D),
+                ),
+              ),
+              Row(
+                children: [
+                  Text(
+                    'Ver todos',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFFF38638),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 12,
+                    color: const Color(0xFFF38638),
+                  ),
+                ],
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           
@@ -132,8 +159,14 @@ class ProgressDashboardWidget extends ConsumerWidget {
           // Distribuição de treinos por tipo
           _buildWorkoutTypeDistribution(context, dashboardData.workoutsByType),
         ],
+        ),
       ),
     );
+  }
+  
+  /// Navega para a tela de listagem de treinos
+  void _navigateToWorkoutsList(BuildContext context) {
+    context.pushRoute(const UserWorkoutsManagementRoute());
   }
   
   /// Constrói um card com estatística
@@ -241,7 +274,7 @@ class ProgressDashboardWidget extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '$count min',
+                        count == 1 ? '$count treino' : '$count treinos',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.black54,
                         ),

@@ -33,4 +33,10 @@ final currentUserProvider = Provider<UserData?>((ref) {
     return null;
   }
   return UserData.fromUser(user);
+});
+
+/// Provider que fornece apenas o ID do usuário atual
+final currentUserIdProvider = Provider<String?>((ref) {
+  final user = ref.watch(currentUserProvider);
+  return user?.id;
 }); 

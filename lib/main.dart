@@ -77,10 +77,12 @@ Future<void> _initializeApp() async {
   await initializeDateFormatting('pt_BR', null);
   Intl.defaultLocale = 'pt_BR';
 
-  // Set preferred orientations
+  // Set preferred orientations - permite fullscreen em vídeos
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
   ]);
   
   // Carregar variáveis de ambiente

@@ -62,6 +62,16 @@ class ProgressCardsWidget extends ConsumerWidget {
     );
   }
 
+  /// Widget público para resumo do mês
+  static Widget buildMonthSummary(DashboardFitnessData data) {
+    return ProgressCardsWidget()._buildMonthProgressCard(data.progress.month);
+  }
+
+  /// Widget público para resumo da semana
+  static Widget buildWeekSummary(DashboardFitnessData data) {
+    return ProgressCardsWidget()._buildWeekProgressCard(data.progress.week);
+  }
+
   /// Card de progresso da semana
   Widget _buildWeekProgressCard(WeekProgress week) {
     return Container(
@@ -436,7 +446,7 @@ class ProgressCardsWidget extends ConsumerWidget {
               spacing: 8,
               runSpacing: 8,
               children: month.typesDistribution.entries.map((entry) {
-                final minutes = entry.value is int ? entry.value : 0;
+                final count = entry.value is int ? entry.value : 0;
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
@@ -444,7 +454,7 @@ class ProgressCardsWidget extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    '$minutes min de ${entry.key}',
+                    count == 1 ? '$count treino de ${entry.key}' : '$count treinos de ${entry.key}',
                     style: const TextStyle(
                       color: Color(0xFF4D4D4D),
                       fontSize: 12,

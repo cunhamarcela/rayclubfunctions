@@ -25,7 +25,7 @@ class FitnessCalendarWidget extends ConsumerWidget {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEDC94), // Fundo bege claro
+        color: const Color(0xFFF8F1E7), // Fundo rosa suave
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(

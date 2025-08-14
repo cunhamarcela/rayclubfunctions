@@ -968,7 +968,7 @@ class AuthRepository implements IAuthRepository {
           .maybeSingle();
       
       if (existingProfile == null) {
-        // Criar perfil se não existir
+        // Criar perfil se não existir COM account_type = 'basic'
         await _supabaseClient.from('profiles').insert({
           'id': user.id,
           'email': user.email,
@@ -976,6 +976,7 @@ class AuthRepository implements IAuthRepository {
                   user.userMetadata?['name'] ?? 
                   user.email?.split('@').first ?? 
                   'Usuário',
+          'account_type': 'basic',  // ✅ CAMPO ADICIONADO PARA GARANTIR BASIC
           'created_at': DateTime.now().toIso8601String(),
           'updated_at': DateTime.now().toIso8601String(),
         });

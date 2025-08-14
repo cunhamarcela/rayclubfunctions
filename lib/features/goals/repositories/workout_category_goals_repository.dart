@@ -62,17 +62,21 @@ class WorkoutCategoryGoalsRepository implements IWorkoutCategoryGoalsRepository 
 
       // Converter resposta para lista de metas
       final goals = (response as List).map((data) {
+        // 🔧 CORREÇÃO: Tratar valores null e usar campos corretos
+        debugPrint('🔍 Processando dados da meta: $data');
+        
         return WorkoutCategoryGoal.fromJson({
-          'id': data['id'],
-          'user_id': userId,
-          'category': data['category'],
-          'goal_minutes': data['goal_minutes'],
-          'current_minutes': data['current_minutes'],
-          'week_start_date': data['week_start_date'],
-          'week_end_date': data['week_end_date'],
-          'is_active': true,
-          'completed': data['completed'],
-          'created_at': DateTime.now().toIso8601String(),
+          'id': data['id']?.toString() ?? '',
+          'userId': userId, // ✅ Corrigido: usar 'userId' não 'user_id'
+          'category': data['category']?.toString() ?? '',
+          'goalMinutes': data['goal_minutes']?.toInt() ?? 0,
+          'currentMinutes': data['current_minutes']?.toInt() ?? 0,
+          'weekStartDate': data['week_start_date']?.toString() ?? DateTime.now().toIso8601String(),
+          'weekEndDate': data['week_end_date']?.toString() ?? DateTime.now().add(const Duration(days: 7)).toIso8601String(),
+          'isActive': true,
+          'completed': data['completed'] ?? false,
+          'createdAt': DateTime.now().toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
         });
       }).toList();
 
@@ -162,16 +166,16 @@ class WorkoutCategoryGoalsRepository implements IWorkoutCategoryGoalsRepository 
       // Converter resposta para modelo com tratamento de nulls
       final goal = WorkoutCategoryGoal.fromJson({
         'id': responseMap['id']?.toString() ?? '',
-        'user_id': responseMap['user_id']?.toString() ?? userId,
+        'userId': responseMap['user_id']?.toString() ?? userId, // ✅ Corrigido: userId
         'category': responseMap['category']?.toString() ?? category.toLowerCase().trim(),
-        'goal_minutes': responseMap['goal_minutes'] ?? goalMinutes,
-        'current_minutes': responseMap['current_minutes'] ?? 0,
-        'week_start_date': responseMap['week_start_date']?.toString() ?? DateTime.now().toIso8601String(),
-        'week_end_date': responseMap['week_end_date']?.toString() ?? DateTime.now().add(const Duration(days: 7)).toIso8601String(),
-        'is_active': responseMap['is_active'] ?? true,
+        'goalMinutes': responseMap['goal_minutes'] ?? goalMinutes, // ✅ Corrigido: goalMinutes
+        'currentMinutes': responseMap['current_minutes'] ?? 0, // ✅ Corrigido: currentMinutes
+        'weekStartDate': responseMap['week_start_date']?.toString() ?? DateTime.now().toIso8601String(), // ✅ Corrigido
+        'weekEndDate': responseMap['week_end_date']?.toString() ?? DateTime.now().add(const Duration(days: 7)).toIso8601String(), // ✅ Corrigido
+        'isActive': responseMap['is_active'] ?? true, // ✅ Corrigido: isActive
         'completed': responseMap['completed'] ?? false,
-        'created_at': responseMap['created_at']?.toString() ?? DateTime.now().toIso8601String(),
-        'updated_at': responseMap['updated_at']?.toString() ?? DateTime.now().toIso8601String(),
+        'createdAt': responseMap['created_at']?.toString() ?? DateTime.now().toIso8601String(), // ✅ Corrigido: createdAt
+        'updatedAt': responseMap['updated_at']?.toString() ?? DateTime.now().toIso8601String(), // ✅ Corrigido: updatedAt
       });
 
       debugPrint('✅ Meta definida com sucesso: ${goal.categoryDisplayName} - ${goal.goalMinutesDisplay}');

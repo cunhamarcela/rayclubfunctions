@@ -92,6 +92,32 @@ class MockWeeklyGoalRepository extends _i1.Mock
       ) as _i4.Future<_i2.WeeklyGoal>);
 
   @override
+  _i4.Future<_i2.WeeklyGoal> getWeeklyGoalStatus() => (super.noSuchMethod(
+        Invocation.method(
+          #getWeeklyGoalStatus,
+          [],
+        ),
+        returnValue: _i4.Future<_i2.WeeklyGoal>.value(_FakeWeeklyGoal_0(
+          this,
+          Invocation.method(
+            #getWeeklyGoalStatus,
+            [],
+          ),
+        )),
+      ) as _i4.Future<_i2.WeeklyGoal>);
+
+  @override
+  _i4.Future<Map<String, dynamic>> syncExistingWorkouts() =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #syncExistingWorkouts,
+          [],
+        ),
+        returnValue:
+            _i4.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
+      ) as _i4.Future<Map<String, dynamic>>);
+
+  @override
   _i4.Future<List<_i2.WeeklyGoal>> getWeeklyGoalsHistory({int? limit = 12}) =>
       (super.noSuchMethod(
         Invocation.method(

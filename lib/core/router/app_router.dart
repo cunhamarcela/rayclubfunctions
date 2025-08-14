@@ -88,6 +88,8 @@ import '../../features/challenges/models/challenge.dart';
 import '../../features/challenges/models/challenge_group.dart';
 import '../../features/events/screens/events_screen.dart';
 import '../../features/events/screens/event_detail_screen.dart';
+import '../../features/ranking/screens/cardio_ranking_screen.dart';
+import '../../features/ranking/screens/participant_workouts_screen.dart';
 
 part 'app_router.gr.dart';
 
@@ -161,6 +163,10 @@ abstract class AppRoutes {
   /// Rotas de eventos
   static const events = '/events';
   static String eventDetail(String eventId) => '/events/$eventId';
+  
+  /// Rotas de ranking
+  static const cardioRanking = '/ranking/cardio';
+  static String participantWorkouts(String participantId) => '/ranking/cardio/participant/$participantId';
   
   /// Rotas de benefícios
   static const benefits = '/benefits';
@@ -430,10 +436,24 @@ class AppRouter extends RootStackRouter {
           guards: [LayeredAuthGuard(_ref)],
         ),
         
+        // Ranking de Cardio
+        AutoRoute(
+          path: AppRoutes.cardioRanking,
+          page: CardioRankingRoute.page,
+          guards: [LayeredAuthGuard(_ref)],
+        ),
+        
+        // Treinos do Participante
+        AutoRoute(
+          path: '/ranking/cardio/participant/:participantId',
+          page: ParticipantWorkoutsRoute.page,
+          guards: [LayeredAuthGuard(_ref)],
+        ),
+        
         // Rotas de Benefícios
         AutoRoute(
           path: AppRoutes.benefits,
-          page: BenefitsListRoute.page,
+          page: BenefitsRoute.page,
           guards: [LayeredAuthGuard(_ref)],
         ),
         AutoRoute(

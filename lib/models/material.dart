@@ -8,7 +8,8 @@ enum MaterialType {
   pdf,
   ebook,
   guide,
-  document
+  document,
+  video
 }
 
 /// Contexto do material (onde será usado)
@@ -32,6 +33,9 @@ class Material with _$Material {
     @JsonKey(name: 'thumbnail_url') String? thumbnailUrl,
     @JsonKey(name: 'author_name') String? authorName,
     @JsonKey(name: 'workout_video_id') String? workoutVideoId, // Para PDFs específicos de treinos
+    @JsonKey(name: 'video_url') String? videoUrl, // Para materiais em vídeo
+    @JsonKey(name: 'video_id') String? videoId, // ID do YouTube para vídeos
+    @JsonKey(name: 'video_duration') int? videoDuration, // Duração em segundos
     @JsonKey(name: 'order_index') int? orderIndex,
     @JsonKey(name: 'is_featured') @Default(false) bool isFeatured,
     @JsonKey(name: 'requires_expert_access') @Default(false) bool requiresExpertAccess,

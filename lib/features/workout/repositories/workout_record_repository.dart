@@ -19,6 +19,7 @@ import 'package:ray_club_app/core/providers/supabase_providers.dart';
 import 'package:ray_club_app/features/workout/models/workout_processing_status.dart';
 import 'package:ray_club_app/features/workout/models/check_in_error_log.dart';
 import 'package:ray_club_app/features/challenges/constants/challenge_rpc_params.dart';
+import 'package:ray_club_app/features/goals/services/goal_progress_service.dart';
 
 /// Interface para o repositório de registros de treinos
 abstract class WorkoutRecordRepository {
@@ -323,7 +324,7 @@ class MockWorkoutRecordRepository implements WorkoutRecordRepository {
     
     try {
       // Simular a lógica do record_workout_basic
-      final bool isCheckIn = durationMinutes >= 45; // Se treino tem mais de 45min
+      final bool isCheckIn = true; // Aceitar treinos de qualquer duração
       final int pointsEarned = isCheckIn ? 10 : 0; // Pontos para check-in
       
       if (workoutRecordId != null) {
@@ -674,6 +675,22 @@ class SupabaseWorkoutRecordRepository implements WorkoutRecordRepository {
       } catch (e) {
         // Apenas fazer log do erro, não devemos falhar a operação principal
         debugPrint('⚠️ Erro ao atualizar progresso do usuário: $e');
+      }
+
+      // 🎯 NOVO: Atualizar metas automaticamente baseado no treino
+      try {
+        // Importar o UnifiedGoalRepository se não estiver importado
+        // e integrar aqui quando disponível
+        debugPrint('🎯 [INTEGRAÇÃO METAS] Processando treino para metas automáticas...');
+        debugPrint('🎯 Treino: ${resultRecord.workoutType} (${resultRecord.durationMinutes} min)');
+        
+        // TODO: Adicionar integração com UnifiedGoalRepository.updateGoalsFromWorkout()
+        // quando o provider estiver disponível
+        
+        debugPrint('✅ [INTEGRAÇÃO METAS] Preparado para integração futura');
+      } catch (e) {
+        // Não propagar erro para não interromper o fluxo principal
+        debugPrint('⚠️ [INTEGRAÇÃO METAS] Erro ao processar metas: $e');
       }
 
       return resultRecord;
@@ -1064,40 +1081,31 @@ class SupabaseWorkoutRecordRepository implements WorkoutRecordRepository {
       // IMPORTANTE: A resposta agora é diretamente um Map e não um objeto PostgrestResponse
       debugPrint('✅ Resposta direta recebida: $response (tipo: ${response.runtimeType})');
       
-      // A resposta já é um Map<String, dynamic>, não precisamos acessar .data ou .error
-      Map<String, dynamic> result;
+      // ⭐ NOVO: Processar treino para atualizar metas automaticamente
+      await _processWorkoutForGoals(
+        userId: userId,
+        workoutType: workoutType,
+        durationMinutes: durationMinutes,
+        workoutDate: date,
+      );
       
-      // Verificar se a resposta é um mapa válido
-      if (response is Map<String, dynamic>) {
-        result = response;
-        debugPrint('✅ Resposta processada como Map: $result');
-        
-        // Verificar se a resposta indica sucesso
-        final bool success = result['success'] as bool? ?? false;
-        if (!success) {
-          throw app_errors.DatabaseException(
-            message: result['message'] as String? ?? 'Erro ao registrar treino',
-            code: result['error_code'] as String? ?? 'unknown_error',
-          );
-        }
-      } else {
-        // Lidar com formatos inesperados
-        debugPrint('⚠️ Formato de resposta inesperado: ${response.runtimeType}');
-        result = {
-          'success': true,
-          'workout_id': workoutRecordId ?? '',
-          'message': 'Treino ${workoutRecordId != null ? "atualizado" : "registrado"} com formato de resposta não esperado'
-        };
+      return _processRpcResponse(response);
+    } catch (e) {
+      debugPrint('❌ Erro no RPC record_workout_basic: $e');
+      
+      // ⭐ NOVO: Mesmo em caso de erro no registro, tentar processar metas
+      // para garantir que o usuário não perca o progresso
+      if (e is! app_errors.AppAuthException) {
+        await _processWorkoutForGoals(
+          userId: userId,
+          workoutType: workoutType,
+          durationMinutes: durationMinutes,
+          workoutDate: date,
+        );
       }
       
-      debugPrint('✅ Treino ${workoutRecordId != null ? "atualizado" : "registrado"} com sucesso');
-      return result;
-    } catch (e) {
-      debugPrint('❌ Erro ao salvar treino: $e');
-      if (e is app_errors.AppException) rethrow;
-      
       throw app_errors.StorageException(
-        message: 'Erro ao salvar registro de treino',
+        message: 'Erro ao registrar treino via RPC: ${e.toString()}',
         originalError: e,
       );
     }
@@ -1194,4 +1202,71 @@ class SupabaseWorkoutRecordRepository implements WorkoutRecordRepository {
       );
     }
   }
-} 
+
+  /// ⭐ NOVO: Processa treino para atualizar metas automaticamente
+  /// 
+  /// **Data:** 2025-01-21 às 15:30
+  /// **Objetivo:** Conectar exercícios registrados às metas correspondentes
+  /// **Referência:** Sistema de metas automático Ray Club
+  Future<void> _processWorkoutForGoals({
+    required String userId,
+    required String workoutType,
+    required int durationMinutes,
+    required DateTime workoutDate,
+  }) async {
+    try {
+      // Importar e usar o GoalProgressService
+      final goalProgressService = GoalProgressService(
+        supabaseClient: _supabaseClient,
+      );
+      
+      final result = await goalProgressService.processWorkoutForGoals(
+        userId: userId,
+        workoutType: workoutType,
+        durationMinutes: durationMinutes,
+        workoutDate: workoutDate,
+      );
+      
+      debugPrint('🎯 Resultado atualização de metas: ${result['message']}');
+      
+      if (result['updated_goals'] > 0) {
+        debugPrint('🎉 ${result['updated_goals']} meta(s) atualizada(s) para categoria "${result['category']}"');
+      }
+      
+    } catch (e) {
+      debugPrint('⚠️ Erro ao processar metas (não crítico): $e');
+      // Não propagar erro para não afetar o registro do treino
+    }
+  }
+
+  /// Processa a resposta do RPC para verificar sucesso/erro
+  static Map<String, dynamic> _processRpcResponse(dynamic response) {
+  Map<String, dynamic> result;
+  
+  // Verificar se a resposta é um mapa válido
+  if (response is Map<String, dynamic>) {
+    result = response;
+    debugPrint('✅ Resposta processada como Map: $result');
+    
+    // Verificar se a resposta indica sucesso
+    final bool success = result['success'] as bool? ?? false;
+    if (!success) {
+      throw app_errors.DatabaseException(
+        message: result['message'] as String? ?? 'Erro ao registrar treino',
+        code: result['error_code'] as String? ?? 'unknown_error',
+      );
+    }
+  } else {
+    // Lidar com formatos inesperados
+    debugPrint('⚠️ Formato de resposta inesperado: ${response.runtimeType}');
+    result = {
+      'success': true,
+      'workout_id': '',
+      'message': 'Treino registrado com formato de resposta não esperado'
+    };
+  }
+  
+  debugPrint('✅ Treino registrado com sucesso');
+  return result;
+  }
+}

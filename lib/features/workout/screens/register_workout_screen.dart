@@ -197,7 +197,6 @@ class RegisterWorkoutScreen extends ConsumerWidget {
               labelText: 'Duração (minutos)',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.timer),
-              helperText: 'Mínimo de 45 minutos para contar como check-in',
             ),
             keyboardType: TextInputType.number,
           ),
@@ -265,31 +264,7 @@ class RegisterWorkoutScreen extends ConsumerWidget {
             ),
           ],
           
-          // Explicação sobre check-in
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Sobre check-ins',
-                  style: AppTypography.titleSmall,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '• Treinos com duração a partir de 45 minutos contam como check-in\n'
-                  '• Apenas um check-in por dia é contabilizado\n'
-                  '• Check-ins concluídos geram pontos no ranking dos desafios',
-                  style: AppTypography.bodyMedium,
-                ),
-              ],
-            ),
-          ),
+
         ],
       ),
     );

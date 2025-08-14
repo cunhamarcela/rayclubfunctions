@@ -31,6 +31,10 @@ import 'package:ray_club_app/features/workout/screens/workout_video_detail_scree
 import 'package:ray_club_app/providers/user_profile_provider.dart' as profile_providers;
 import 'package:ray_club_app/core/services/user_verification_service.dart';
 import 'package:ray_club_app/features/workout/screens/workout_video_detail_screen.dart';
+import 'package:ray_club_app/features/home/widgets/ray_favorite_recipes_section.dart';
+import 'package:ray_club_app/features/workout/providers/workout_material_providers.dart';
+import 'package:ray_club_app/models/material.dart' as app_material;
+import 'package:ray_club_app/widgets/pdf_viewer_widget.dart';
 
 /**
  * HomeScreen - Tela principal do aplicativo
@@ -42,8 +46,8 @@ import 'package:ray_club_app/features/workout/screens/workout_video_detail_scree
  * na seguinte ordem específica:
  * 
  * 1. Treinos de Musculação
- *    - Conheça nossa personal
- *    - Semana 1, 2, 3
+ *    - Treinos A, B, C, D, E, F, G
+ *    - Ordenados especificamente (A-G)
  *    - Categoria: 'musculação'
  * 
  * 2. Goya Health Club  
@@ -65,7 +69,7 @@ import 'package:ray_club_app/features/workout/screens/workout_video_detail_scree
  * 
  * 5. The Unit
  *    - Apresentação
- *    - Testes, Mobilidade, Fortalecimento
+    *    - Testes, Mobilidade, Estabilidade
  *    - Categoria: 'fisioterapia'
  * 
  * FUNCIONALIDADES:
@@ -297,10 +301,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.emoji_events),
-                    title: const Text('Desafio Ray 21'),
+                    title: const Text('Desafios'),
                     onTap: () {
                       Navigator.pop(context);
-                      AppNavigator.navigateToChallenges(context);
+                      AppNavigator.navigateTo(context, AppRoutes.cardioRanking);
                     },
                   ),
                   _buildDrawerItem(
@@ -554,10 +558,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 // NOVO: Widget de Onboarding
                 _buildOnboardingWidget(context),
                 
-
-                
                 // NOVO: Seções completas de treinos por categoria
                 _buildCompleteWorkoutSections(context, ref),
+                
+                // NOVO: Seção Receitas Favoritas da Ray (no final)
+                const RayFavoriteRecipesSection(),
                 
                 const SizedBox(height: 24),
               ]),
@@ -649,7 +654,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         'title': 'Desafios',
         'icon': Icons.emoji_events_rounded,
         'color': const Color(0xFFEFB9B7), // Nova cor lilás
-        'route': () => context.router.push(const ChallengesListRoute()),
+        'route': () => context.router.push(const CardioRankingRoute()),
       },
       {
         'title': 'Nutrição',
@@ -820,11 +825,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
           ),
-          SizedBox(
+          Container(
             height: 90, // Reduced height
+            margin: const EdgeInsets.symmetric(horizontal: 24), // Margin para alinhamento consistente
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: EdgeInsets.zero, // Remove padding interno para alinhamento perfeito
               itemCount: quickActions.length,
               itemBuilder: (context, index) {
                 final action = quickActions[index];
@@ -889,12 +895,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildOnboardingWidget(BuildContext context) {
     // Lista de imagens do banner do projeto 7 dias
     final bannerImages = [
-      'assets/images/logos/app/projeto 7 dias.png',
-      'assets/images/logos/app/projeto 7 dias 2.png',
-      'assets/images/logos/app/projeto 7 dias 3.png',
+      'assets/images/1.png',
+      'assets/images/2.png',
+      'assets/images/3.png',
     ];
 
     // Lista de itens de onboarding focados no Desafio Ray de 21 dias
+    /* COMENTADO: Cards de onboarding - deixando apenas as imagens do banner
     final onboardingItems = [
       {
         'title': 'Regras',
@@ -930,6 +937,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         'onTap': () => _launchURL('https://chat.whatsapp.com/JC7jjgxPV5O9MhA6Abzil8'),
       },
     ];
+    */
 
     // Controller para PageView
     final PageController pageController = PageController(viewportFraction: 0.93);
@@ -943,22 +951,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         
         // Carrossel unificado com banner principal e cards informativos
         SizedBox(
-          height: 260, // Reduzido ainda mais o tamanho do carrossel de desafio
+          height: 180, // Aumentado para melhor visualização do banner de onboarding
           child: PageView.builder(
             controller: pageController,
-            itemCount: bannerImages.length + onboardingItems.length, // 3 banners + cards informativos
+            itemCount: bannerImages.length, // Apenas as 3 imagens do banner
             padEnds: false,
               itemBuilder: (context, index) {
                               // Primeiros itens são as imagens do banner
               if (index < bannerImages.length) {
                 return Container(
                   margin: EdgeInsets.fromLTRB(
-                    index == 0 ? 24 : 12, // Primeira imagem tem margin maior à esquerda
+                    index == 0 ? 24 : 24, // Padronizado: todas as imagens com 24px nas laterais
                     0, 
-                    index == bannerImages.length - 1 ? 12 : 12, // Última imagem do banner
+                    index == bannerImages.length - 1 ? 24 : 12, // Margem direita padronizada
                     0
                   ),
-                  height: 260, // Tamanho reduzido para o banner
+                  height: 180, // Aumentado para melhor visualização do banner de onboarding
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(24),
                   ),
@@ -967,7 +975,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: () => context.router.push(const ChallengesListRoute()),
+                        onTap: () => context.router.push(const CardioRankingRoute()),
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
@@ -984,6 +992,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 );
               }
               
+              /* COMENTADO: Cards informativos - deixando apenas as imagens do banner
               // Restante dos itens são os cards informativos
               final itemIndex = index - bannerImages.length; // Ajustar índice para os cards informativos
               final item = onboardingItems[itemIndex];
@@ -1074,6 +1083,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               );
+              */
+              
+              // Se chegou até aqui, retorna um Container vazio como fallback
+              return const SizedBox.shrink();
             },
           ),
         ),
@@ -1084,7 +1097,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: Center(
             child: SmoothPageIndicator(
               controller: pageController,
-              count: bannerImages.length + onboardingItems.length, // 3 banners + cards informativos
+              count: bannerImages.length, // Apenas as 3 imagens do banner
               effect: WormEffect(
                 dotHeight: 8,
                 dotWidth: 8,
@@ -1288,6 +1301,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final videosPerPage = 3;
     final totalPages = (allVideos.length / videosPerPage).ceil();
     
+    // ✨ NOVA FUNCIONALIDADE: Detectar se é a seção de corrida (Bora Assessoria)
+    final isCorridaCategory = studio.id == 'corrida' || studio.name == 'Bora Assessoria';
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       child: Column(
@@ -1295,7 +1311,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: [
           // Header da categoria - design mais clean com proteção contra overflow
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
             child: Row(
               children: [
                 Expanded(
@@ -1347,6 +1363,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
           
+          // ✨ NOVA SEÇÃO: Planilhas de corrida (somente se for categoria corrida)
+          if (isCorridaCategory) ...[
+            _buildHomeRunningPlanilhasSection(context, ref),
+            const SizedBox(height: 20),
+          ],
+          
           // Se tem mais de 3 vídeos, usar PageView horizontal; senão, lista vertical simples
           if (allVideos.length <= 3)
             // Lista vertical simples para 3 ou menos vídeos
@@ -1362,7 +1384,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 // PageView horizontal para mais de 3 vídeos
                 SizedBox(
-                  height: 376, // Altura ajustada: 3 cards de 120px + 2 margins de 8px + padding extra = 376px
+                  height: 500, // Altura aumentada: 3 cards de 160px + 2 margins de 8px + padding extra = 500px
                   child: PageView.builder(
                     itemCount: totalPages,
                     padEnds: false,
@@ -1531,8 +1553,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             }
           },
           child: Container(
-            height: 120,
-            margin: EdgeInsets.fromLTRB(20, 0, 20, isLastInPage ? 0 : 8), // Remove margin bottom do último card e reduz margins
+            height: 160,
+            margin: EdgeInsets.fromLTRB(24, 0, 24, isLastInPage ? 0 : 8), // Margin lateral padronizada para 24px
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
@@ -1647,54 +1669,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 ),
                               ),
                             
-                            // Duração no canto superior direito
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                video.duration ?? '0 min',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: 'CenturyGothic',
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
+
                           ],
                         ),
                         
-                        const SizedBox(height: 6),
                         
-                        // Título centralizado verticalmente
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              video.title ?? 'Sem título',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                fontFamily: 'CenturyGothic',
-                                letterSpacing: -0.2,
-                                shadows: [
-                                  Shadow(
-                                    offset: Offset(0, 1),
-                                    blurRadius: 2,
-                                    color: Colors.black45,
-                                  ),
-                                ],
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
+                        // Espaçador para centralizar badges
+                        const Spacer(),
                         // Badge de acesso Expert para vídeos bloqueados
                         if (!canAccess)
                           Container(
@@ -1777,8 +1758,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             }
           },
           child: Container(
-            height: 120,
-            margin: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            height: 160,
+            margin: const EdgeInsets.fromLTRB(24, 0, 24, 8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
@@ -1892,55 +1873,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   size: 16,
                                 ),
                               ),
-                            
-                            // Duração no canto superior direito
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                video.duration ?? '0 min',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: 'CenturyGothic',
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
                           ],
                         ),
                         
-                        const SizedBox(height: 6),
                         
-                        // Título centralizado verticalmente
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              video.title ?? 'Sem título',
-                              style: TextStyle(
-                                color: canAccess ? Colors.white : Colors.white.withOpacity(0.7),
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                fontFamily: 'CenturyGothic',
-                                letterSpacing: -0.2,
-                                shadows: [
-                                  Shadow(
-                                    offset: Offset(0, 1),
-                                    blurRadius: 2,
-                                    color: Colors.black45,
-                                  ),
-                                ],
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
+                        // Espaçador para centralizar badges
+                        const Spacer(),
                         // Badge de acesso Expert para vídeos bloqueados
                         if (!canAccess)
                           Container(
@@ -2349,28 +2287,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 12,
-                              color: accentColor,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                video.duration,
-                                style: TextStyle(
-                                  fontFamily: 'CenturyGothic',
-                                  fontSize: 11,
-                                  color: accentColor,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
+
                       ],
                     ),
                   ),
@@ -2838,5 +2755,218 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  // ✨ NOVA FUNÇÃO: Seção de planilhas de corrida para a home screen
+  Widget _buildHomeRunningPlanilhasSection(BuildContext context, WidgetRef ref) {
+    final materialsAsync = ref.watch(runningMaterialsProvider);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header da seção de planilhas com design compacto para home
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFEFB9B7), // Rosa claro solicitado
+                Color(0xFFE8A5A3), // Tom mais escuro do rosa para gradiente
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const Row(
+            children: [
+              Icon(
+                Icons.description,
+                color: Colors.white,
+                size: 24,
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Planilhas de Treino',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'CenturyGothic',
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Guias para seus treinos de corrida ✨',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                        fontFamily: 'CenturyGothic',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 12),
+        
+        // Lista de planilhas
+        materialsAsync.when(
+          data: (materials) {
+            if (materials.isEmpty) {
+              return _buildEmptyHomePlanilhasState();
+            }
+            return Column(
+              children: materials.map((material) => 
+                _buildHomePlanilhaCard(context, material)
+              ).toList(),
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEFB9B7)),
+                strokeWidth: 2,
+              ),
+            ),
+          ),
+          error: (error, _) => _buildEmptyHomePlanilhasState(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHomePlanilhaCard(BuildContext context, app_material.Material material) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _openHomePdfViewer(context, material),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                // Ícone do PDF
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFB9B7).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.picture_as_pdf,
+                    color: Color(0xFFEFB9B7),
+                    size: 22,
+                  ),
+                ),
+                
+                const SizedBox(width: 12),
+                
+                // Informações da planilha
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        material.title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF333333),
+                          fontFamily: 'CenturyGothic',
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        material.description,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontFamily: 'CenturyGothic',
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Seta indicando ação
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.grey[400],
+                  size: 14,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyHomePlanilhasState() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.description_outlined,
+            size: 32,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Planilhas em breve! ✨',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+              fontFamily: 'CenturyGothic',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openHomePdfViewer(BuildContext context, app_material.Material material) {
+    // ✅ PROTEÇÃO EXPERT: Usar ExpertVideoGuard para PDFs
+    ExpertVideoGuard.openProtectedPdf(context, ref, material);
+  }
 
 }

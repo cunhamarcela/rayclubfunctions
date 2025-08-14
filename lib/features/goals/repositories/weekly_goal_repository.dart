@@ -21,8 +21,10 @@ class WeeklyGoalRepository {
         );
       }
 
-      final response = await _supabase
-          .rpc('get_or_create_weekly_goal', params: {'p_user_id': userId});
+      // ✅ USAR FUNÇÃO CRIADA: get_or_create_weekly_goal
+      final response = await _supabase.rpc('get_or_create_weekly_goal', params: {
+        'p_user_id': userId,
+      });
 
       if (response == null || (response as List).isEmpty) {
         throw AppException(
@@ -31,14 +33,8 @@ class WeeklyGoalRepository {
         );
       }
 
-      final data = response[0] as Map<String, dynamic>;
-      
-      // Converter datas de string para DateTime
-      data['week_start_date'] = DateTime.parse(data['week_start_date']);
-      data['week_end_date'] = DateTime.parse(data['week_end_date']);
-      data['percentage_completed'] = double.tryParse(data['percentage_completed'].toString()) ?? 0.0;
-
-      return WeeklyGoal.fromJson(data);
+      final data = Map<String, dynamic>.from(response[0]);
+      return _processWeeklyGoalData(data);
     } catch (e) {
       if (e is AppError) rethrow;
       throw AppException(
@@ -67,6 +63,7 @@ class WeeklyGoalRepository {
         );
       }
 
+      // ✅ CORREÇÃO: Usar parâmetros da função existente
       final response = await _supabase.rpc('update_weekly_goal', params: {
         'p_user_id': userId,
         'p_goal_minutes': goalMinutes,
@@ -79,18 +76,9 @@ class WeeklyGoalRepository {
         );
       }
 
-      final data = response as Map<String, dynamic>;
-      
-      // Converter datas
-      data['week_start_date'] = DateTime.parse(data['week_start_date']);
-      data['week_end_date'] = DateTime.parse(data['week_end_date']);
-      
-      // Calcular porcentagem
-      final current = data['current_minutes'] as int;
-      final goal = data['goal_minutes'] as int;
-      data['percentage_completed'] = goal > 0 ? (current / goal) * 100 : 0.0;
-
-      return WeeklyGoal.fromJson(data);
+      // A função retorna o registro atualizado
+      final data = Map<String, dynamic>.from(response);
+      return _processWeeklyGoalData(data);
     } catch (e) {
       if (e is AppError) rethrow;
       throw AppException(
@@ -111,6 +99,7 @@ class WeeklyGoalRepository {
         );
       }
 
+      // ✅ CORREÇÃO: Usar parâmetros da função existente
       final response = await _supabase.rpc('add_workout_minutes_to_goal', params: {
         'p_user_id': userId,
         'p_minutes': minutes,
@@ -123,23 +112,64 @@ class WeeklyGoalRepository {
         );
       }
 
-      final data = response as Map<String, dynamic>;
-      
-      // Converter datas
-      data['week_start_date'] = DateTime.parse(data['week_start_date']);
-      data['week_end_date'] = DateTime.parse(data['week_end_date']);
-      
-      // Calcular porcentagem
-      final current = data['current_minutes'] as int;
-      final goal = data['goal_minutes'] as int;
-      data['percentage_completed'] = goal > 0 ? (current / goal) * 100 : 0.0;
-
-      return WeeklyGoal.fromJson(data);
+      // A função retorna o registro atualizado
+      final data = Map<String, dynamic>.from(response);
+      return _processWeeklyGoalData(data);
     } catch (e) {
       if (e is AppError) rethrow;
       throw AppException(
         'Erro ao adicionar minutos: ${e.toString()}',
         code: 'ADD_MINUTES_ERROR',
+      );
+    }
+  }
+
+  /// Obtém status da meta semanal (implementação direta)
+  Future<WeeklyGoal> getWeeklyGoalStatus() async {
+    try {
+      // Usar mesma lógica do getOrCreateCurrentWeeklyGoal
+      return await getOrCreateCurrentWeeklyGoal();
+    } catch (e) {
+      if (e is AppError) rethrow;
+      throw AppException(
+        'Erro ao buscar status: ${e.toString()}',
+        code: 'WEEKLY_GOAL_STATUS_ERROR',
+      );
+    }
+  }
+
+  /// Sincroniza treinos existentes da semana atual
+  Future<Map<String, dynamic>> syncExistingWorkouts() async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw AppException(
+          'Usuário não autenticado',
+          code: 'UNAUTHENTICATED',
+        );
+      }
+
+      // ✅ USAR FUNÇÃO CRIADA: sync_existing_workouts_to_weekly_goals
+      final response = await _supabase.rpc('sync_existing_workouts_to_weekly_goals', params: {
+        'p_user_id': userId,
+      });
+
+      if (response == null) {
+        throw AppException(
+          'Erro ao sincronizar treinos',
+          code: 'SYNC_ERROR',
+        );
+      }
+
+      final result = Map<String, dynamic>.from(response);
+      debugPrint('🔄 Sincronização via RPC: ${result['message']}');
+      
+      return result;
+    } catch (e) {
+      if (e is AppError) rethrow;
+      throw AppException(
+        'Erro ao sincronizar: ${e.toString()}',
+        code: 'SYNC_ERROR',
       );
     }
   }
@@ -155,6 +185,7 @@ class WeeklyGoalRepository {
         );
       }
 
+      // ✅ USAR FUNÇÃO EXISTENTE com parâmetros corretos
       final response = await _supabase.rpc('get_weekly_goals_history', params: {
         'p_user_id': userId,
         'p_limit': limit,
@@ -165,17 +196,9 @@ class WeeklyGoalRepository {
       }
 
       final goals = (response as List).map((data) {
-        final goalData = data as Map<String, dynamic>;
-        
-        // Converter datas
-        goalData['week_start_date'] = DateTime.parse(goalData['week_start_date']);
-        goalData['week_end_date'] = DateTime.parse(goalData['week_end_date']);
-        goalData['percentage_completed'] = double.tryParse(goalData['percentage_completed'].toString()) ?? 0.0;
-        
-        // Adicionar user_id que não vem da função
-        goalData['user_id'] = userId;
-
-        return WeeklyGoal.fromJson(goalData);
+        final goalData = Map<String, dynamic>.from(data);
+        goalData['user_id'] = userId; // Adicionar user_id que pode não vir da função
+        return _processWeeklyGoalData(goalData);
       }).toList();
 
       return goals;
@@ -210,18 +233,26 @@ class WeeklyGoalRepository {
           if (filtered.isEmpty) return null;
           
           final goalData = Map<String, dynamic>.from(filtered.first);
-          
-          // Converter datas
-          goalData['week_start_date'] = DateTime.parse(goalData['week_start_date']);
-          goalData['week_end_date'] = DateTime.parse(goalData['week_end_date']);
-          
-          // Calcular porcentagem
-          final current = goalData['current_minutes'] as int;
-          final goal = goalData['goal_minutes'] as int;
-          goalData['percentage_completed'] = goal > 0 ? (current / goal) * 100 : 0.0;
-          
-          return WeeklyGoal.fromJson(goalData);
+          return _processWeeklyGoalData(goalData);
         });
+  }
+
+  /// Processa dados da weekly goal para formato consistente
+  WeeklyGoal _processWeeklyGoalData(Map<String, dynamic> data) {
+    // Converter datas se necessário
+    if (data['week_start_date'] is String) {
+      data['week_start_date'] = DateTime.parse(data['week_start_date']);
+    }
+    if (data['week_end_date'] is String) {
+      data['week_end_date'] = DateTime.parse(data['week_end_date']);
+    }
+    
+    // Calcular porcentagem
+    final current = data['current_minutes'] as int? ?? 0;
+    final goal = data['goal_minutes'] as int? ?? 180;
+    data['percentage_completed'] = goal > 0 ? (current / goal) * 100.0 : 0.0;
+
+    return WeeklyGoal.fromJson(data);
   }
 
   /// Obtém o início da semana atual (segunda-feira)

@@ -74,11 +74,25 @@ final isExpertUserProfileProvider = Provider<AsyncValue<bool>>((ref) {
       debugPrint('🔍 [isExpertUserProfileProvider] Account Type: ${profile?.accountType}');
       debugPrint('🔍 [isExpertUserProfileProvider] Account Type runtimeType: ${profile?.accountType.runtimeType}');
       
-      final isExpert = profile?.accountType == 'expert';
+      // ✅ VALIDAÇÃO EXTRA: Se accountType for null, tratar como 'basic'
+      final accountType = profile?.accountType ?? 'basic';
+      final isExpert = accountType == 'expert';
+      
+      debugPrint('🔍 [isExpertUserProfileProvider] accountType original: ${profile?.accountType}');
+      debugPrint('🔍 [isExpertUserProfileProvider] accountType final: $accountType');
       debugPrint('🔍 [isExpertUserProfileProvider] isExpert calculado: $isExpert');
       debugPrint('🔍 [isExpertUserProfileProvider] isExpert runtimeType: ${isExpert.runtimeType}');
-      debugPrint('🔍 [isExpertUserProfileProvider] Comparação: "${profile?.accountType}" == "expert" = $isExpert');
-      debugPrint('🔍 [isExpertUserProfileProvider] Comparação strict: ${profile?.accountType?.toLowerCase() == 'expert'}');
+      debugPrint('🔍 [isExpertUserProfileProvider] Comparação: "$accountType" == "expert" = $isExpert');
+      debugPrint('🔍 [isExpertUserProfileProvider] Comparação strict: ${accountType.toLowerCase() == 'expert'}');
+      
+      // ✅ FAIL-SAFE ADICIONAL: Se profile for null, sempre basic
+      if (profile == null) {
+        debugPrint('🔍 [isExpertUserProfileProvider] ⚠️ Profile é null - retornando false');
+        final result = AsyncValue.data(false);
+        debugPrint('🔍 [isExpertUserProfileProvider] AsyncValue.data criado: $result');
+        debugPrint('🔍 [isExpertUserProfileProvider] =============================================');
+        return result;
+      }
       
       final result = AsyncValue.data(isExpert);
       debugPrint('🔍 [isExpertUserProfileProvider] AsyncValue.data criado: $result');

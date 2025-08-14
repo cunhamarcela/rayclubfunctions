@@ -25,6 +25,9 @@ class WorkoutVideo with _$WorkoutVideo {
     
     // ✨ NOVO: Suporte a PDFs
     @JsonKey(name: 'has_pdf_materials') @Default(false) bool hasPdfMaterials,
+    
+         // ✨ NOVO: Subcategoria (para fisioterapia: testes, mobilidade, estabilidade)
+     String? subcategory,
   }) = _WorkoutVideo;
 
   factory WorkoutVideo.fromJson(Map<String, dynamic> json) =>

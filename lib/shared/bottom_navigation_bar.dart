@@ -43,7 +43,7 @@ class SharedBottomNavigationBar extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildNavItem(
                 context: context, 
@@ -75,12 +75,12 @@ class SharedBottomNavigationBar extends StatelessWidget {
               ),
               _buildNavItem(
                 context: context,
-                icon: Icons.emoji_events_outlined,
-                selectedIcon: Icons.emoji_events,
-                label: 'Desafio',
+                icon: Icons.dashboard_outlined,
+                selectedIcon: Icons.dashboard,
+                label: 'Dashboard',
                 index: 4,
                 currentIndex: currentIndex,
-                onTap: () => context.router.replaceNamed(AppRoutes.challengeCompleted),
+                onTap: () => context.router.replaceNamed(AppRoutes.dashboard),
               ),
             ],
           ),

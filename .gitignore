@@ -49,6 +49,9 @@ app.*.map.json
 
 sentry.properties
 
+# Sentry wizard (large file)
+sentry-wizard
+
 # Android signing
 android/key.properties
 *.keystore

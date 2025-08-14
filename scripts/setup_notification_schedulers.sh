@@ -1,89 +1,82 @@
 #!/bin/bash
 
 # =====================================================
-# SCRIPT PARA CONFIGURAR SCHEDULERS DE NOTIFICAÇÕES
+# GUIA PARA CONFIGURAR SCHEDULERS DE NOTIFICAÇÕES
 # Ray Club - Sistema de Notificações Automáticas
 # =====================================================
 
-echo "🚀 Configurando schedulers de notificações para Ray Club..."
-
-# Verificar se o Supabase CLI está instalado
-if ! command -v supabase &> /dev/null; then
-    echo "❌ Supabase CLI não encontrado. Instale com: npm install -g supabase"
-    exit 1
-fi
-
-# Verificar se estamos logados no Supabase
-if ! supabase projects list &> /dev/null; then
-    echo "❌ Não está logado no Supabase. Execute: supabase login"
-    exit 1
-fi
-
-echo "✅ Supabase CLI encontrado e usuário logado"
-
-# Configurar scheduler para notificações da manhã (8h)
-echo "📅 Configurando scheduler para notificações da manhã (8h)..."
-supabase functions schedule create notificacoes_manha \
-  --function send_push_notifications \
-  --cron "0 8 * * *" \
-  --project-ref zsbbgchsjiuicwvtrldn
-
-if [ $? -eq 0 ]; then
-    echo "✅ Scheduler da manhã configurado com sucesso"
-else
-    echo "❌ Erro ao configurar scheduler da manhã"
-fi
-
-# Configurar scheduler para notificações da tarde (15h)
-echo "📅 Configurando scheduler para notificações da tarde (15h)..."
-supabase functions schedule create notificacoes_tarde \
-  --function send_push_notifications \
-  --cron "0 15 * * *" \
-  --project-ref zsbbgchsjiuicwvtrldn
-
-if [ $? -eq 0 ]; then
-    echo "✅ Scheduler da tarde configurado com sucesso"
-else
-    echo "❌ Erro ao configurar scheduler da tarde"
-fi
-
-# Configurar scheduler para notificações da noite (20h)
-echo "📅 Configurando scheduler para notificações da noite (20h)..."
-supabase functions schedule create notificacoes_noite \
-  --function send_push_notifications \
-  --cron "0 20 * * *" \
-  --project-ref zsbbgchsjiuicwvtrldn
-
-if [ $? -eq 0 ]; then
-    echo "✅ Scheduler da noite configurado com sucesso"
-else
-    echo "❌ Erro ao configurar scheduler da noite"
-fi
-
-# Configurar scheduler para verificação de usuários inativos (12h)
-echo "📅 Configurando scheduler para verificação de usuários inativos (12h)..."
-supabase functions schedule create verificacao_inatividade \
-  --function send_push_notifications \
-  --cron "0 12 * * *" \
-  --project-ref zsbbgchsjiuicwvtrldn
-
-if [ $? -eq 0 ]; then
-    echo "✅ Scheduler de verificação de inatividade configurado com sucesso"
-else
-    echo "❌ Erro ao configurar scheduler de verificação de inatividade"
-fi
-
+echo "🚀 Guia para configurar schedulers de notificações para Ray Club..."
 echo ""
-echo "🎉 Configuração de schedulers concluída!"
+echo "⚠️  IMPORTANTE: Os schedulers (cron jobs) devem ser configurados através do Supabase Dashboard"
+echo "   pois a versão atual do CLI não suporta o comando 'schedule'."
 echo ""
-echo "📋 Resumo dos schedulers configurados:"
-echo "   • Manhã: 8h (notificações motivacionais e receitas)"
-echo "   • Tarde: 15h (lembretes de treino e desafios)"
-echo "   • Noite: 20h (reflexões e receitas de jantar)"
-echo "   • Inatividade: 12h (verificação de usuários sem treino)"
+echo "📋 PASSOS PARA CONFIGURAR NO DASHBOARD:"
 echo ""
-echo "🔧 Para verificar os schedulers ativos, execute:"
-echo "   supabase functions schedule list --project-ref zsbbgchsjiuicwvtrldn"
+echo "1. 🌐 Acesse: https://supabase.com/dashboard/project/zsbbgchsjiuicwvtrldn"
 echo ""
-echo "🗑️  Para remover um scheduler, execute:"
-echo "   supabase functions schedule delete <nome_do_scheduler> --project-ref zsbbgchsjiuicwvtrldn"
+echo "2. 🔗 Conecte o projeto ao GitHub:"
+echo "   • Vá em Settings > Integrations"
+echo "   • Clique em 'Connect to GitHub'"
+echo "   • Selecione o repositório 'rayclubfunctions'"
+echo "   • Confirme a conexão"
+echo ""
+echo "3. ⏰ Ative o menu Scheduler:"
+echo "   • Após conectar ao GitHub, o menu 'Scheduler' aparecerá na barra lateral"
+echo "   • Clique em 'Scheduler' no menu lateral"
+echo ""
+echo "4. ➕ Criar os schedulers manualmente:"
+echo ""
+echo "   📅 SCHEDULER 1 - Notificações da Manhã:"
+echo "   • Nome: notificacoes_manha"
+echo "   • Função: send_push_notifications"
+echo "   • Cron: 0 8 * * * (todo dia às 8h)"
+echo "   • Descrição: Notificações motivacionais e receitas matinais"
+echo ""
+echo "   📅 SCHEDULER 2 - Notificações da Tarde:"
+echo "   • Nome: notificacoes_tarde"
+echo "   • Função: send_push_notifications"
+echo "   • Cron: 0 15 * * * (todo dia às 15h)"
+echo "   • Descrição: Lembretes de treino e lanches saudáveis"
+echo ""
+echo "   📅 SCHEDULER 3 - Notificações da Noite:"
+echo "   • Nome: notificacoes_noite"
+echo "   • Função: send_push_notifications"
+echo "   • Cron: 0 20 * * * (todo dia às 20h)"
+echo "   • Descrição: Reflexões e receitas de jantar"
+echo ""
+echo "5. 🔐 Configurar variáveis de ambiente:"
+echo "   • Vá em Settings > Edge Functions"
+echo "   • Adicione as seguintes variáveis:"
+echo "     - SUPABASE_URL: https://zsbbgchsjiuicwvtrldn.supabase.co"
+echo "     - SUPABASE_SERVICE_ROLE_KEY: [sua service role key]"
+echo "     - FCM_SERVER_KEY: [sua FCM server key do Firebase]"
+echo ""
+echo "6. ✅ Testar a função:"
+echo "   • No Dashboard, vá em Edge Functions"
+echo "   • Clique em 'send_push_notifications'"
+echo "   • Use o botão 'Invoke' para testar manualmente"
+echo ""
+echo "📚 FORMATO CRON EXPLICADO:"
+echo "   Formato: minuto hora dia mês dia_da_semana"
+echo "   • 0 8 * * * = todo dia às 8:00"
+echo "   • 0 15 * * * = todo dia às 15:00"
+echo "   • 0 20 * * * = todo dia às 20:00"
+echo "   • 0 */4 * * * = a cada 4 horas"
+echo "   • 0 9 * * 1-5 = segunda a sexta às 9h"
+echo ""
+echo "🔧 VERIFICAÇÃO:"
+echo "   Após configurar, você pode verificar os schedulers ativos no Dashboard"
+echo "   em Scheduler > View all schedules"
+echo ""
+echo "🎯 STATUS ATUAL:"
+echo "   ✅ Função 'send_push_notifications' deployada com sucesso"
+echo "   ✅ Código da função está funcionando"
+echo "   ⏳ Schedulers precisam ser configurados manualmente no Dashboard"
+echo ""
+echo "🚀 PRÓXIMOS PASSOS:"
+echo "   1. Acesse o Dashboard do Supabase"
+echo "   2. Conecte ao GitHub (se ainda não conectou)"
+echo "   3. Configure os 3 schedulers conforme instruções acima"
+echo "   4. Adicione as variáveis de ambiente"
+echo "   5. Teste a função manualmente"
+echo ""

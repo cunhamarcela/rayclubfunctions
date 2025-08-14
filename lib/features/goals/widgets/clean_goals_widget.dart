@@ -580,6 +580,19 @@ class _CleanGoalsWidgetState extends ConsumerState<CleanGoalsWidget> {
                   ),
                 ),
                 const Spacer(),
+                // Botão Editar
+                IconButton(
+                  onPressed: () => _showEditGoalModal(context, goal),
+                  icon: const Icon(Icons.edit, color: Colors.blue),
+                  tooltip: 'Editar meta',
+                ),
+                // Botão Excluir
+                IconButton(
+                  onPressed: () => _showDeleteConfirmation(context, goal),
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  tooltip: 'Excluir meta',
+                ),
+                // Botão Fechar
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close),
@@ -1171,6 +1184,282 @@ class _CleanGoalsWidgetState extends ConsumerState<CleanGoalsWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao criar meta: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  void _showEditGoalModal(BuildContext context, Map<String, dynamic> goal) {
+    Navigator.pop(context); // Fechar modal anterior
+    
+    final TextEditingController quantityController = TextEditingController();
+    final category = goal['category']?.toString() ?? '';
+    final currentGoalMinutes = goal['goal_minutes'] ?? 90;
+    
+    // Determinar se é meta de dias ou minutos baseado no valor atual
+    String selectedType = 'minutes';
+    int displayValue = currentGoalMinutes;
+    
+    // Se for múltiplo de 30 e maior que 30, provavelmente é meta de dias
+    if (currentGoalMinutes >= 30 && currentGoalMinutes % 30 == 0) {
+      selectedType = 'dias';
+      displayValue = currentGoalMinutes ~/ 30;
+    }
+    
+    quantityController.text = displayValue.toString();
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Container(
+          height: MediaQuery.of(context).size.height * 0.5,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Editar Meta de ${category.toUpperCase()}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Tipo de meta
+              const Text('Tipo de meta:', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile<String>(
+                      title: const Text('Minutos'),
+                      value: 'minutes',
+                      groupValue: selectedType,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedType = value!;
+                          if (selectedType == 'minutes') {
+                            quantityController.text = '90';
+                          } else {
+                            quantityController.text = '5';
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: RadioListTile<String>(
+                      title: const Text('Dias'),
+                      value: 'dias',
+                      groupValue: selectedType,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedType = value!;
+                          if (selectedType == 'minutes') {
+                            quantityController.text = '90';
+                          } else {
+                            quantityController.text = '5';
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Quantidade
+              Text('Quantidade (${selectedType}):', style: const TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: quantityController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  hintText: selectedType == 'dias' ? '5' : '90',
+                  suffixText: selectedType == 'dias' ? 'dias' : 'min',
+                ),
+              ),
+              
+              const Spacer(),
+              
+              // Botões
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancelar'),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _updateGoal(context, goal, int.parse(quantityController.text), selectedType),
+                      child: const Text('Salvar'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updateGoal(BuildContext context, Map<String, dynamic> goal, int quantity, String type) async {
+    try {
+      Navigator.pop(context); // Fechar modal
+      
+      // Mostrar loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+      
+      final supabase = Supabase.instance.client;
+      final userId = supabase.auth.currentUser?.id;
+      final goalId = goal['id'];
+      
+      if (userId == null) {
+        throw Exception('Usuário não logado');
+      }
+      
+      // Converter dias para minutos se necessário (compatibilidade com backend atual)
+      int goalMinutes;
+      if (type == 'dias') {
+        goalMinutes = quantity * 30; // 30 min por dia
+      } else {
+        goalMinutes = quantity;
+      }
+      
+      // Atualizar meta diretamente na tabela
+      await supabase
+          .from('workout_category_goals')
+          .update({
+            'goal_minutes': goalMinutes,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', goalId);
+      
+      Navigator.pop(context); // Fechar loading
+      
+      // Recarregar lista de metas
+      await _loadGoals();
+      
+      // Mostrar sucesso
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Meta atualizada: $quantity $type! 🎉'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      
+    } catch (e) {
+      Navigator.pop(context); // Fechar loading se houver erro
+      
+      debugPrint('❌ [CleanWidget] Erro ao atualizar meta: $e');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao atualizar meta: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  void _showDeleteConfirmation(BuildContext context, Map<String, dynamic> goal) {
+    final category = goal['category']?.toString() ?? '';
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir Meta'),
+        content: Text('Tem certeza que deseja excluir a meta de ${category.toUpperCase()}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => _deleteGoal(context, goal),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteGoal(BuildContext context, Map<String, dynamic> goal) async {
+    try {
+      Navigator.pop(context); // Fechar dialog de confirmação
+      Navigator.pop(context); // Fechar modal de detalhes
+      
+      // Mostrar loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+      
+      final supabase = Supabase.instance.client;
+      final goalId = goal['id'];
+      final category = goal['category']?.toString() ?? '';
+      
+      // Excluir meta da tabela
+      await supabase
+          .from('workout_category_goals')
+          .delete()
+          .eq('id', goalId);
+      
+      Navigator.pop(context); // Fechar loading
+      
+      // Recarregar lista de metas
+      await _loadGoals();
+      
+      // Mostrar sucesso
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Meta de ${category.toUpperCase()} excluída! 🗑️'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      
+    } catch (e) {
+      Navigator.pop(context); // Fechar loading se houver erro
+      
+      debugPrint('❌ [CleanWidget] Erro ao excluir meta: $e');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao excluir meta: $e'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),

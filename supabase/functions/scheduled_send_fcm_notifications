@@ -1,0 +1,198 @@
+// Edge Function: send_fcm_notifications.ts
+import { serve } from "https://deno.land/std/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+serve(async (req)=>{
+  const supabase = createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
+  const { trigger_type: forcedTrigger, test_mode } = await req.json().catch(()=>({}));
+  const now = new Date();
+  const hour = now.getHours();
+  const dayOfWeek = now.getDay();
+  const dayOfMonth = now.getDate();
+  const month = now.getMonth() + 1;
+  let triggerTypes = [];
+  if (forcedTrigger) {
+    triggerTypes = [
+      forcedTrigger
+    ];
+  } else {
+    if (hour >= 6 && hour < 10) triggerTypes.push("manha");
+    else if (hour >= 12 && hour < 16) triggerTypes.push("tarde");
+    else if (hour >= 18 && hour < 21) triggerTypes.push("noite");
+    if (dayOfWeek === 1) triggerTypes.push("inicio_semana");
+    if (dayOfWeek === 4 && hour === 18) triggerTypes.push("meta_semanal_risco");
+    if (month >= 6 && month <= 8) triggerTypes.push("ebook_sazonal_inverno");
+    else if (month >= 12 || month <= 2) triggerTypes.push("ebook_sazonal_verao");
+  }
+  if (triggerTypes.length === 0) {
+    return new Response(JSON.stringify({
+      message: "Nenhum trigger ativo para este horário"
+    }), {
+      status: 200
+    });
+  }
+  const { data: templates, error: templatesError } = await supabase.from("notification_templates").select("*").in("trigger_type", triggerTypes);
+  if (templatesError) return new Response(JSON.stringify({
+    error: "Erro ao buscar templates"
+  }), {
+    status: 500
+  });
+  if (!templates || templates.length === 0) return new Response(JSON.stringify({
+    message: "Nenhum template encontrado"
+  }), {
+    status: 200
+  });
+  const { data: users, error: usersError } = await supabase.from("profiles").select("id, fcm_token, name, email, created_at, last_login_at, streak, completed_workouts, points").not("fcm_token", "is", null).neq("fcm_token", "");
+  if (usersError) return new Response(JSON.stringify({
+    error: "Erro ao buscar usuários"
+  }), {
+    status: 500
+  });
+  let successCount = 0, errorCount = 0, skippedCount = 0;
+  for (const user of users){
+    for (const template of templates){
+      try {
+        if (!await shouldSendToUser(supabase, template, user)) {
+          skippedCount++;
+          continue;
+        }
+        const { title, body } = await personalizeMessage(supabase, template, user);
+        const fcmPayload = {
+          to: user.fcm_token,
+          notification: {
+            title,
+            body,
+            icon: "ic_notification",
+            sound: "default"
+          },
+          data: {
+            category: template.category,
+            trigger_type: template.trigger_type,
+            template_id: template.id,
+            click_action: "FLUTTER_NOTIFICATION_CLICK"
+          }
+        };
+        const fcmResponse = await fetch("https://fcm.googleapis.com/fcm/send", {
+          method: "POST",
+          headers: {
+            Authorization: `key=${Deno.env.get("FCM_SERVER_KEY")}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(fcmPayload)
+        });
+        if (fcmResponse.ok) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+        await supabase.from("notifications").insert({
+          user_id: user.id,
+          title,
+          message: body,
+          type: template.category,
+          data: {
+            trigger_type: template.trigger_type,
+            template_id: template.id,
+            sent_via: "fcm"
+          }
+        });
+      } catch (_) {
+        errorCount++;
+      }
+    }
+  }
+  return new Response(JSON.stringify({
+    message: "Notificações processadas",
+    successCount,
+    errorCount,
+    skippedCount
+  }), {
+    status: 200
+  });
+});
+function getStartOfDay() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+function getStartOfWeek() {
+  const d = new Date();
+  const day = d.getDay();
+  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+function getYesterday() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+function getTwoDaysAgo() {
+  const d = new Date();
+  d.setDate(d.getDate() - 2);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+async function shouldSendToUser(supabase, template, user) {
+  const now = new Date();
+  const createdAt = new Date(user.created_at || now);
+  const days = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+  if (days < 1) return false;
+  switch(template.trigger_type){
+    case "primeiro_treino":
+      const { data: workouts } = await supabase.from("user_workouts").select("id").eq("user_id", user.id).limit(1);
+      return !workouts || workouts.length === 0;
+    case "sem_treino_1dia":
+      const { data: yest } = await supabase.from("user_workouts").select("id").eq("user_id", user.id).gte("created_at", getYesterday()).lt("created_at", getStartOfDay());
+      return !yest || yest.length === 0;
+    case "sem_treino_2dias":
+      const { data: two } = await supabase.from("user_workouts").select("id").eq("user_id", user.id).gte("created_at", getTwoDaysAgo());
+      return !two || two.length === 0;
+    case "ultrapassado":
+      return Math.random() < 0.1;
+    default:
+      return true;
+  }
+}
+async function personalizeMessage(supabase, template, user) {
+  let title = template.title || "Ray Club";
+  let body = template.body || "";
+  if (user.name) {
+    title = title.replace("[nome]", user.name);
+    body = body.replace("[nome]", user.name);
+  }
+  switch(template.trigger_type){
+    case "meta_semanal_risco":
+      const { data: week } = await supabase.from("user_workouts").select("id").eq("user_id", user.id).gte("created_at", getStartOfWeek());
+      const weeklyGoal = 5;
+      const remaining = Math.max(0, weeklyGoal - (week?.length || 0));
+      body = body.replace("[x]", remaining.toString());
+      break;
+    case "meta_diaria_risco":
+      const { data: today } = await supabase.from("user_workouts").select("id").eq("user_id", user.id).gte("created_at", getStartOfDay());
+      const dailyGoal = 1;
+      const dailyRemaining = Math.max(0, dailyGoal - (today?.length || 0));
+      body = body.replace("[x]", dailyRemaining.toString());
+      break;
+    case "sequencia_alta":
+      body = body.replace("[x]", (user.streak || 0).toString());
+      break;
+    case "treino_longo":
+      body = body.replace("[x]", "45");
+      break;
+    case "manha":
+    case "tarde":
+    case "noite":
+      const { data: recipes } = await supabase.from("recipes").select("title").limit(1).order("created_at", {
+        ascending: false
+      });
+      if (recipes && recipes.length > 0) {
+        body = body.replace("[nome_receita]", recipes[0].title);
+      }
+      break;
+  }
+  return {
+    title,
+    body
+  };
+}

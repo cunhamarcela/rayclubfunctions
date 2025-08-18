@@ -316,17 +316,6 @@ deno_version = 1
 FCM_SERVER_KEY = "env(FCM_SERVER_KEY)"
 SUPABASE_SERVICE_ROLE_KEY = "env(SUPABASE_SERVICE_ROLE_KEY)"
 
-# Configuração das funções para agendamento
-[functions.send_notification]
-# Habilita agendamento via dashboard para esta função
-verify_jwt = false
-schedule = true
-
-[functions.send_push_notifications]
-# Função principal de notificações push já existente
-verify_jwt = false
-schedule = true
-
 [analytics]
 enabled = true
 port = 54327
